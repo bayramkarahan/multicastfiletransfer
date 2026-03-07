@@ -12,6 +12,11 @@ struct PacketHeader
     quint32 total;
     quint32 size;
     quint32 crc;
+    quint32 targetCount;
+    quint32 serverIp;
+    quint8  overwrite;
+
+    quint32 pathSize;   // 🔥 yeni alan
 };
 #pragma pack(pop)
 

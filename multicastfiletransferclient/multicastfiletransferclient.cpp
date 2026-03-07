@@ -1,12 +1,12 @@
 #include "multicastfiletransferclient.h"
-#include <zlib.h>
+#include <QNetworkInterface>
 #include <QFileInfo>
+#include <zlib.h>
 
 QHostAddress group("239.255.0.1");
 quint16 dataPort = 45454;
 quint16 ackPort  = 45455;
-
-QHostAddress serverIp("192.168.23.240");
+quint16 clientCmdPort = 50000;
 
 MulticastFileTransferClient::MulticastFileTransferClient(QObject *parent)
     : QObject(parent)
@@ -14,7 +14,7 @@ MulticastFileTransferClient::MulticastFileTransferClient(QObject *parent)
     socket.bind(QHostAddress::AnyIPv4,
                 dataPort,
                 QUdpSocket::ShareAddress |
-                    QUdpSocket::ReuseAddressHint);
+                QUdpSocket::ReuseAddressHint);
 
     socket.joinMulticastGroup(group);
 
@@ -25,7 +25,7 @@ MulticastFileTransferClient::MulticastFileTransferClient(QObject *parent)
 
     ackSocket.bind(0);
 
-    commandSocket.bind(50000);
+    commandSocket.bind(clientCmdPort);
 
     connect(&commandSocket,
             &QUdpSocket::readyRead,
@@ -45,44 +45,35 @@ void MulticastFileTransferClient::resetSession()
         file.close();
     }
 
-    buffer.clear();
     currentFileId = 0;
     totalPackets  = 0;
 }
 
 QString MulticastFileTransferClient::makeUniqueFileName(const QString &fileName)
 {
+    if(!QFile::exists(fileName))
+        return fileName;
+
     QFileInfo info(fileName);
-
-    QString baseName = info.completeBaseName();
-    QString suffix   = info.suffix();
-    QString dir      = info.absolutePath();
-
-    QString newName;
-
-    if(suffix.isEmpty())
-        newName = dir + "/" + baseName;
-    else
-        newName = dir + "/" + baseName + "." + suffix;
+    QString base = info.completeBaseName();
+    QString suffix = info.suffix();
+    QString dir = info.absolutePath();
 
     int counter = 1;
+    QString newName;
 
-    while(QFile::exists(newName))
+    do
     {
         if(suffix.isEmpty())
             newName = QString("%1/%2(%3)")
-                          .arg(dir)
-                          .arg(baseName)
-                          .arg(counter);
+                        .arg(dir).arg(base).arg(counter);
         else
             newName = QString("%1/%2(%3).%4")
-                          .arg(dir)
-                          .arg(baseName)
-                          .arg(counter)
-                          .arg(suffix);
+                        .arg(dir).arg(base).arg(counter).arg(suffix);
 
         counter++;
-    }
+
+    } while(QFile::exists(newName));
 
     return newName;
 }
@@ -101,35 +92,104 @@ void MulticastFileTransferClient::readPending()
         PacketHeader h;
         memcpy(&h, d.constData(), sizeof(PacketHeader));
 
-        // ---------------- META ----------------
+        // ================= META =================
         if(h.type == META)
         {
             resetSession();
 
-            currentFileId = h.fileId;
-            totalPackets  = h.total;
+            currentServerIp = QHostAddress(h.serverIp);
+
+            bool overwrite = (h.overwrite == 1);
+
+            bool allowed = false;
+
+            if(h.targetCount == 0)
+                allowed = true;
+            else
+            {
+                const char *ptr =
+                    d.constData() + sizeof(PacketHeader);
+
+                for(quint32 i=0;i<h.targetCount;i++)
+                {
+                    quint32 addr;
+                    memcpy(&addr,
+                           ptr + i*sizeof(quint32),
+                           sizeof(quint32));
+
+                    const auto localAddrs =
+                        QNetworkInterface::allAddresses();
+
+                    for(const auto &local : localAddrs)
+                    {
+                        if(local.protocol() == QAbstractSocket::IPv4Protocol &&
+                           local.toIPv4Address() == addr)
+                        {
+                            allowed = true;
+                            break;
+                        }
+                    }
+
+                    if(allowed)
+                        break;
+                }
+            }
+
+            if(!allowed)
+                return;
+
+            int ipListSize =
+                h.targetCount * sizeof(quint32);
+
+            int offset =
+                sizeof(PacketHeader) + ipListSize;
 
             QString fileName =
                 QString::fromUtf8(
-                    d.mid(sizeof(PacketHeader), h.size));
+                    d.mid(offset, h.size));
 
-            originalFileName = makeUniqueFileName(fileName);
+            QString savePath =
+                QString::fromUtf8(
+                    d.mid(offset + h.size,
+                          h.pathSize));
 
-            currentFileName = originalFileName + ".part";
+            if(savePath.isEmpty())
+                savePath = QDir::homePath();
+
+            QString baseName =
+                QFileInfo(fileName).fileName();
+
+            if(overwrite)
+            {
+                originalFileName =
+                    savePath + "/" + baseName;
+
+                if(QFile::exists(originalFileName))
+                    QFile::remove(originalFileName);
+            }
+            else
+            {
+                originalFileName =
+                    makeUniqueFileName(
+                        savePath + "/" + baseName);
+            }
+
+            currentFileName =
+                originalFileName + ".part";
 
             file.setFileName(currentFileName);
 
             if(!file.open(QIODevice::WriteOnly))
-            {
-                qDebug() << "Dosya açılamadı";
                 return;
-            }
 
-            qDebug() << "Yeni transfer başladı:"
+            currentFileId = h.fileId;
+            totalPackets  = h.total;
+
+            qDebug() << "Transfer başladı:"
                      << originalFileName;
         }
 
-        // ---------------- DATA ----------------
+        // ================= DATA =================
         else if(h.type == DATA)
         {
             if(h.fileId != currentFileId)
@@ -142,8 +202,8 @@ void MulticastFileTransferClient::readPending()
                 d.mid(sizeof(PacketHeader), h.size);
 
             if(::crc32(0L,
-                        reinterpret_cast<const Bytef*>(payload.constData()),
-                        payload.size()) == h.crc)
+                       reinterpret_cast<const Bytef*>(payload.constData()),
+                       payload.size()) == h.crc)
             {
                 file.seek(h.seq * CHUNK);
                 file.write(payload);
@@ -152,7 +212,7 @@ void MulticastFileTransferClient::readPending()
             }
         }
 
-        // ---------------- END ----------------
+        // ================= END =================
         else if(h.type == END)
         {
             if(h.fileId != currentFileId)
@@ -166,13 +226,13 @@ void MulticastFileTransferClient::readPending()
                 QFile::rename(currentFileName,
                               originalFileName);
 
-                qDebug() << "Transfer tamamlandı:"
-                         << originalFileName;
-
                 emit transferFinished(originalFileName);
 
                 sendDone();
                 resetSession();
+
+                qDebug() << "Transfer tamamlandı:"
+                         << originalFileName;
             }
         }
     }
@@ -180,35 +240,28 @@ void MulticastFileTransferClient::readPending()
 
 void MulticastFileTransferClient::sendAck(quint32 seq)
 {
-    PacketHeader h;
+    PacketHeader h{};
     h.type  = ACK;
     h.fileId = currentFileId;
     h.seq   = seq;
-    h.total = totalPackets;
-    h.size  = 0;
-    h.crc   = 0;
 
     ackSocket.writeDatagram(
         reinterpret_cast<char*>(&h),
         sizeof(h),
-        serverIp,
+        currentServerIp,
         ackPort);
 }
 
 void MulticastFileTransferClient::sendDone()
 {
-    PacketHeader h;
+    PacketHeader h{};
     h.type  = DONE;
     h.fileId = currentFileId;
-    h.seq   = 0;
-    h.total = totalPackets;
-    h.size  = 0;
-    h.crc   = 0;
 
     ackSocket.writeDatagram(
         reinterpret_cast<char*>(&h),
         sizeof(h),
-        serverIp,
+        currentServerIp,
         ackPort);
 }
 
@@ -219,7 +272,6 @@ void MulticastFileTransferClient::readCommand()
         QByteArray d;
         d.resize(commandSocket.pendingDatagramSize());
         commandSocket.readDatagram(d.data(), d.size());
-
         qDebug() << "Server command:" << d;
     }
 }

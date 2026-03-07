@@ -6,7 +6,7 @@
 #include <QFile>
 #include <QMap>
 #include <QHostAddress>
-
+#include <QDir>
 #include "protocol.h"
 
 class MulticastFileTransferClient : public QObject
@@ -28,7 +28,6 @@ private:
     void sendAck(quint32 seq);
     void sendDone();
     QString makeUniqueFileName(const QString &fileName);
-
     void resetSession();
 
     QUdpSocket socket;        // multicast data
@@ -40,10 +39,10 @@ private:
     QString originalFileName;
     QString currentFileName;
 
-    QMap<quint32, QByteArray> buffer;
-
     quint32 currentFileId = 0;
     quint32 totalPackets  = 0;
+
+    QHostAddress currentServerIp;
 
     const int CHUNK = 1400 - sizeof(PacketHeader);
 };

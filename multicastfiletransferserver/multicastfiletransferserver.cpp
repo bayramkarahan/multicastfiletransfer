@@ -27,12 +27,15 @@ MulticastFileTransferServer::MulticastFileTransferServer(QObject *parent)
             this,&MulticastFileTransferServer::resendTimeout);
 }
 
-void MulticastFileTransferServer::sendFile(const QString &path)
+void MulticastFileTransferServer::sendFile(const QString &path,
+                                           const QHostAddress &serverIp,
+                                           const QList<QHostAddress> &targets,
+                                           bool overwrite,
+                                           const QString &clientSavePath)
 {
     finishedClients.clear();
 
     file.setFileName(path);
-
     if(!file.open(QIODevice::ReadOnly))
         return;
 
@@ -40,12 +43,14 @@ void MulticastFileTransferServer::sendFile(const QString &path)
     file.close();
 
     fileId = QDateTime::currentSecsSinceEpoch();
-
     totalPackets = (fileData.size() / CHUNK) + 1;
 
     QFileInfo fi(path);
 
-    sendMeta(fi.fileName());
+    sendMeta(fi.fileName(),
+             serverIp,
+             targets,
+             overwrite,clientSavePath);
 
     resendTimer.start();
 
@@ -57,13 +62,9 @@ void MulticastFileTransferServer::sendFile(const QString &path)
         QCoreApplication::processEvents();
     }
 
-    PacketHeader h;
+    PacketHeader h{};
     h.type = END;
     h.fileId = fileId;
-    h.seq = 0;
-    h.total = totalPackets;
-    h.size = 0;
-    h.crc = 0;
 
     dataSocket.writeDatagram(
         reinterpret_cast<char*>(&h),
@@ -74,26 +75,42 @@ void MulticastFileTransferServer::sendFile(const QString &path)
     resendTimer.stop();
 }
 
-void MulticastFileTransferServer::sendMeta(const QString &fullname)
+
+void MulticastFileTransferServer::sendMeta(
+        const QString &fileName,
+        const QHostAddress &serverIp,
+        const QList<QHostAddress> &targets,
+        bool overwrite,
+        const QString &clientSavePath)
 {
-    QByteArray name = fullname.toUtf8();
+    QByteArray name = fileName.toUtf8();
+    QByteArray savePath = clientSavePath.toUtf8();
 
-    PacketHeader h;
-
+    PacketHeader h{};
     h.type = META;
     h.fileId = fileId;
-    h.seq = 0;
     h.total = totalPackets;
     h.size = name.size();
-    h.crc = 0;
+    h.targetCount = targets.size();
+    h.serverIp = serverIp.toIPv4Address();
+    h.overwrite = overwrite ? 1 : 0;
+    h.pathSize = savePath.size();   // 🔥
 
     QByteArray d;
+    d.append(reinterpret_cast<char*>(&h), sizeof(h));
 
-    d.append(reinterpret_cast<char*>(&h),sizeof(h));
+    for(const auto &ip : targets)
+    {
+        quint32 addr = ip.toIPv4Address();
+        d.append(reinterpret_cast<char*>(&addr), sizeof(addr));
+    }
+
     d.append(name);
+    d.append(savePath);   // 🔥 kaydetme yolu
 
-    dataSocket.writeDatagram(d,group,port);
+    dataSocket.writeDatagram(d, group, port);
 }
+
 
 void MulticastFileTransferServer::sendChunk(quint32 seq)
 {
