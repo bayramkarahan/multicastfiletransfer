@@ -141,17 +141,34 @@ void MulticastFileTransferClient::readPending()
             int ipListSize =
                 h.targetCount * sizeof(quint32);
 
-            int offset =
-                sizeof(PacketHeader) + ipListSize;
+            int offset = sizeof(PacketHeader)
+                         + ipListSize;
 
             QString fileName =
-                QString::fromUtf8(
-                    d.mid(offset, h.size));
+                QString::fromUtf8(d.mid(offset, h.size));
+
+            offset += h.size;
 
             QString savePath =
-                QString::fromUtf8(
-                    d.mid(offset + h.size,
-                          h.pathSize));
+                QString::fromUtf8(d.mid(offset, h.pathSize));
+
+            offset += h.pathSize;
+
+            QString alternativeName =
+                QString::fromUtf8(d.mid(offset, h.altNameSize));
+
+            offset += h.altNameSize;
+
+            QString userName =
+                QString::fromUtf8(d.mid(offset, h.userNameSize));
+
+            offset += h.userNameSize;
+
+            QString fileType =
+                QString::fromUtf8(d.mid(offset, h.fileTypeSize));
+            lastAlternativeName = alternativeName;
+            lastUserName = userName;
+            lastFileType = fileType;
 
             if(savePath.isEmpty())
                 savePath = QDir::homePath();
@@ -226,7 +243,11 @@ void MulticastFileTransferClient::readPending()
                 QFile::rename(currentFileName,
                               originalFileName);
 
-                emit transferFinished(originalFileName);
+
+                emit transferFinished(originalFileName,
+                                      lastAlternativeName,
+                                      lastUserName,
+                                      lastFileType);
 
                 sendDone();
                 resetSession();

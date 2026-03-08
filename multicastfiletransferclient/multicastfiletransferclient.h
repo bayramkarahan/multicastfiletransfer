@@ -18,7 +18,10 @@ public:
     void start();
 
 signals:
-    void transferFinished(QString fileName);
+    void transferFinished(QString fileName,
+                              QString alternativeName,
+                              QString userName,
+                              QString fileType);
 
 private slots:
     void readPending();
@@ -45,6 +48,9 @@ private:
     QHostAddress currentServerIp;
 
     const int CHUNK = 1400 - sizeof(PacketHeader);
+    QString lastAlternativeName;
+    QString lastUserName;
+    QString lastFileType;
 };
 
 #endif

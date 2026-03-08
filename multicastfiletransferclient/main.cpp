@@ -8,10 +8,16 @@ int main(int argc, char *argv[])
     MulticastFileTransferClient client;
     QObject::connect(&client,
                      &MulticastFileTransferClient::transferFinished,
-                     [](QString file)
-                     {
-                         qDebug() << "Client: transfer tamamlandı ->" << file;
-                     });
+                     [](QString file,
+                        QString alt,
+                        QString user,
+                        QString type)
+    {
+        qDebug() << "Dosya:" << file;
+        qDebug() << "Alternatif:" << alt;
+        qDebug() << "Kullanıcı:" << user;
+        qDebug() << "Type:" << type;
+    });
     client.start();
     return a.exec();
 }

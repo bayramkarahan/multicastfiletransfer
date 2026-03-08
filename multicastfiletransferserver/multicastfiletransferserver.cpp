@@ -28,10 +28,13 @@ MulticastFileTransferServer::MulticastFileTransferServer(QObject *parent)
 }
 
 void MulticastFileTransferServer::sendFile(const QString &path,
-                                           const QHostAddress &serverIp,
-                                           const QList<QHostAddress> &targets,
-                                           bool overwrite,
-                                           const QString &clientSavePath)
+                                            const QHostAddress &serverIp,
+                                            const QList<QHostAddress> &targets,
+                                            bool overwrite,
+                                            const QString &clientSavePath,
+                                            const QString &alternativeName,
+                                            const QString &userName,
+                                            const QString &fileType)
 {
     finishedClients.clear();
 
@@ -50,7 +53,10 @@ void MulticastFileTransferServer::sendFile(const QString &path,
     sendMeta(fi.fileName(),
              serverIp,
              targets,
-             overwrite,clientSavePath);
+             overwrite,clientSavePath,
+             alternativeName,
+             userName,
+             fileType);
 
     resendTimer.start();
 
@@ -81,10 +87,17 @@ void MulticastFileTransferServer::sendMeta(
         const QHostAddress &serverIp,
         const QList<QHostAddress> &targets,
         bool overwrite,
-        const QString &clientSavePath)
+        const QString &clientSavePath,
+        const QString &alternativeName,
+        const QString &userName,
+        const QString &fileType)
 {
     QByteArray name = fileName.toUtf8();
     QByteArray savePath = clientSavePath.toUtf8();
+
+    QByteArray alt = alternativeName.toUtf8();
+    QByteArray user = userName.toUtf8();
+    QByteArray type = fileType.toUtf8();
 
     PacketHeader h{};
     h.type = META;
@@ -94,7 +107,11 @@ void MulticastFileTransferServer::sendMeta(
     h.targetCount = targets.size();
     h.serverIp = serverIp.toIPv4Address();
     h.overwrite = overwrite ? 1 : 0;
-    h.pathSize = savePath.size();   // 🔥
+    h.pathSize = savePath.size();
+
+    h.altNameSize = alt.size();
+    h.userNameSize = user.size();
+    h.fileTypeSize = type.size();
 
     QByteArray d;
     d.append(reinterpret_cast<char*>(&h), sizeof(h));
@@ -106,12 +123,13 @@ void MulticastFileTransferServer::sendMeta(
     }
 
     d.append(name);
-    d.append(savePath);   // 🔥 kaydetme yolu
+    d.append(savePath);
+    d.append(alt);
+    d.append(user);
+    d.append(type);
 
     dataSocket.writeDatagram(d, group, port);
 }
-
-
 void MulticastFileTransferServer::sendChunk(quint32 seq)
 {
     QByteArray chunk = fileData.mid(seq * CHUNK, CHUNK);
