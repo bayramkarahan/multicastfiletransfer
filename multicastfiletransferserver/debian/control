@@ -10,4 +10,4 @@ Homepage: http://bayramkarahan.com.tr
 Package: multicasttransferserver
 Architecture: amd64
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Description: betikyukleyici Uygulaması
+Description: Dosya Dağıtım Uygulaması

@@ -154,3 +154,116 @@ void ProgressDialog::markDone(const QString &ip)
         totalBar->setValue(clientPercents.isEmpty() ? 0 : sum / clientPercents.size());
     }
 }
+
+void ProgressDialog::markDebInstallStart(const QString &ip,const QString &status)
+{
+    if(progressBars.contains(ip))
+    {
+        progressBars[ip]->setValue(100);
+        progressBars[ip]->setFormat("DEB INSTALL START BEKLEYİN");
+
+        progressBars[ip]->setStyleSheet(
+            "QProgressBar {"
+            "border: 1px solid #888;"
+            "border-radius: 3px;"
+            "background: #2b2b2b;"
+            "color: white;"
+            "}"
+            "QProgressBar::chunk { background-color: #2196f3; }"
+        );
+/*
+        clientPercents[ip] = 100;
+
+        int sum = 0;
+        for(auto v : clientPercents)
+            sum += v;
+
+        totalBar->setValue(clientPercents.isEmpty() ? 0 : sum / clientPercents.size());
+    */
+    }
+}
+
+void ProgressDialog::markDebInstallDone(const QString &ip,const QString &status)
+{
+    if(progressBars.contains(ip))
+    {
+        progressBars[ip]->setValue(100);
+        progressBars[ip]->setFormat("DEB INSTALL DONE");
+
+
+        progressBars[ip]->setStyleSheet(
+            "QProgressBar {"
+            "border: 1px solid #888;"
+            "border-radius: 3px;"
+            "background: #2b2b2b;"
+            "color: white;"
+            "}"
+            "QProgressBar::chunk { background-color: #2196f3; }"
+        );
+
+       /* clientPercents[ip] = 100;
+
+        int sum = 0;
+        for(auto v : clientPercents)
+            sum += v;
+
+        totalBar->setValue(clientPercents.isEmpty() ? 0 : sum / clientPercents.size());
+    */}
+}
+
+void ProgressDialog::markScriptInstallStart(const QString &ip,const QString &status)
+{
+    if(progressBars.contains(ip))
+    {
+        progressBars[ip]->setValue(100);
+        progressBars[ip]->setFormat("SCRIPT INSTALL START BEKLEYİN");
+
+
+        progressBars[ip]->setStyleSheet(
+            "QProgressBar {"
+            "border: 1px solid #888;"
+            "border-radius: 3px;"
+            "background: #2b2b2b;"
+            "color: white;"
+            "}"
+            "QProgressBar::chunk { background-color: #2196f3; }"
+        );
+/*
+        clientPercents[ip] = 100;
+
+        int sum = 0;
+        for(auto v : clientPercents)
+            sum += v;
+
+        totalBar->setValue(clientPercents.isEmpty() ? 0 : sum / clientPercents.size());
+    */}
+}
+
+void ProgressDialog::markScriptInstallDone(const QString &ip,const QString &status)
+{
+    if(progressBars.contains(ip))
+    {
+        progressBars[ip]->setValue(100);
+        progressBars[ip]->setFormat("DEB INSTALL START DONE");
+
+
+        progressBars[ip]->setStyleSheet(
+            "QProgressBar {"
+            "border: 1px solid #888;"
+            "border-radius: 3px;"
+            "background: #2b2b2b;"
+            "color: white;"
+            "}"
+            "QProgressBar::chunk { background-color: #2196f3; }"
+        );
+
+        /*clientPercents[ip] = 100;
+
+        int sum = 0;
+        for(auto v : clientPercents)
+            sum += v;
+
+        totalBar->setValue(clientPercents.isEmpty() ? 0 : sum / clientPercents.size());
+    */
+    }
+}

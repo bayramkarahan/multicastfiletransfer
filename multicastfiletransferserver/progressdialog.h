@@ -18,6 +18,12 @@ public:
     int yukseklik=150;
     void updateProgress(const QString &ip, int percent);
     void markDone(const QString &ip);
+    void markDebInstallStart(const QString &ip,const QString &status);
+    void markDebInstallDone(const QString &ip,const QString &status);
+    void markScriptInstallStart(const QString &ip,const QString &status);
+    void markScriptInstallDone(const QString &ip,const QString &status);
+
+
     int calcHeight(int clientCount)
     {
         int baseHeight = 20;   // total bar + padding

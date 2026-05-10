@@ -80,6 +80,10 @@ int main(int argc, char *argv[])
     MulticastServer server;
     server.targetTempPath = "/tmp";
     server.targetDestinationPath = "/tmp";
+    if(args.target=="deb")
+        server.transferType = TransferType::DebInstall;
+    if(args.target=="script")
+        server.transferType = TransferType::ScriptExecute;
 
     if(args.target=="desktop")
         server.transferType = TransferType::FileCopyDesktop;
@@ -175,17 +179,36 @@ int main(int argc, char *argv[])
         qDebug() << "Tüm transfer tamamlandı";
         QTimer::singleShot(5000, qApp, []()
         {
-            qApp->quit();
+            ///qApp->quit();
         });
     });
 
-    QObject::connect(&server,
-                     &MulticastServer::clientProgressChanged,
+    QObject::connect(&server,&MulticastServer::clientProgressChanged,
                      [&](QString ip, int percent)
     {
         dlg->updateProgress(ip, percent);
     });
 
+    QObject::connect(&server,&MulticastServer::clientDebInstallStart,
+                     [&](QString ip, QString status)
+    {
+        dlg->markDebInstallStart(ip, status);
+    });
+    QObject::connect(&server,&MulticastServer::clientDebInstallDone,
+                     [&](QString ip, QString status)
+    {
+        dlg->markDebInstallDone(ip, status);
+    });
+    QObject::connect(&server,&MulticastServer::clientScriptInstallStart,
+                     [&](QString ip, QString status)
+    {
+        dlg->markScriptInstallStart(ip, status);
+    });
+    QObject::connect(&server,&MulticastServer::clientScriptInstallDone,
+                     [&](QString ip, QString status)
+    {
+        dlg->markScriptInstallDone(ip, status);
+    });
     // -----------------------------
     // START
     // -----------------------------

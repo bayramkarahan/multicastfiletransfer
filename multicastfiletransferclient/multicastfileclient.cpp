@@ -256,6 +256,58 @@ void MulticastClient::sendDone()
     s.writeDatagram(msg, serverAddress, NACK_PORT);
 }
 
+void MulticastClient::debInstallStart()
+{
+    QUdpSocket s;
+
+    QByteArray msg;
+    QDataStream stream(&msg, QIODevice::WriteOnly);
+
+    stream << (quint32)DEB_START;
+    stream << currentTransferId;
+
+    s.writeDatagram(msg, serverAddress, NACK_PORT);
+}
+
+void MulticastClient::debInstallDone(QString status)
+{
+    QUdpSocket s;
+
+    QByteArray msg;
+    QDataStream stream(&msg, QIODevice::WriteOnly);
+
+    stream << (quint32)DEB_DONE;
+    stream << currentTransferId;
+
+    s.writeDatagram(msg, serverAddress, NACK_PORT);
+}
+
+void MulticastClient::scriptInstallStart()
+{
+    QUdpSocket s;
+
+    QByteArray msg;
+    QDataStream stream(&msg, QIODevice::WriteOnly);
+
+    stream << (quint32)SCRIPT_START;
+    stream << currentTransferId;
+
+    s.writeDatagram(msg, serverAddress, NACK_PORT);
+}
+
+void MulticastClient::scriptInstallDone(QString status)
+{
+    QUdpSocket s;
+
+    QByteArray msg;
+    QDataStream stream(&msg, QIODevice::WriteOnly);
+
+    stream << (quint32)SCRIPT_DONE;
+    stream << currentTransferId;
+
+    s.writeDatagram(msg, serverAddress, NACK_PORT);
+}
+
 void MulticastClient::resetState()
 {
     packets.clear();
@@ -285,8 +337,19 @@ void MulticastClient::sendProgress(int percent)
 
 QString MulticastClient::resolveTargetPath(TransferType type, const QString& customPath)
 {
-    QString home = QDir::homePath();
-    QString desktop = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    UserPrivilegeHelper helper;
+     SessionInfo info = helper.getActiveSessionInfo();
+
+    /* if (info.valid) {
+         qDebug() << "Kullanıcı:" << info.username;
+         qDebug() << "UID/GID:" << info.uid << "/" << info.gid;
+         qDebug() << "Home:" << info.home;
+         qDebug() << "Display:" << info.display;
+         qDebug() << "Type:" << info.type;
+         qDebug() << "Service:" << info.service;
+     }*/
+     QString home = info.home;
+     QString desktop = getDesktopPathFromHome(home);
 
     switch(type)
     {
@@ -307,7 +370,34 @@ QString MulticastClient::resolveTargetPath(TransferType type, const QString& cus
     }
 }
 
+QString  MulticastClient::getDesktopPathFromHome(const QString &home)
+{
+    QFile file(home + "/.config/user-dirs.dirs");
 
+    if(file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+        while(!file.atEnd())
+        {
+            QString line = file.readLine();
+
+            if(line.startsWith("XDG_DESKTOP_DIR"))
+            {
+                int firstQuote = line.indexOf('"');
+                int lastQuote = line.lastIndexOf('"');
+
+                if(firstQuote != -1 && lastQuote != -1 && lastQuote > firstQuote)
+                {
+                    QString path = line.mid(firstQuote + 1, lastQuote - firstQuote - 1);
+                    path.replace("$HOME", home);
+                    return path;
+                }
+            }
+        }
+    }
+
+    // fallback
+    return home + "/Desktop";
+}
 bool MulticastClient::copyFile(const QString& src, const QString& dstDir, bool overwrite)
 {
     QFileInfo info(src);
@@ -317,36 +407,4 @@ bool MulticastClient::copyFile(const QString& src, const QString& dstDir, bool o
         QFile::remove(dst);
 
     return QFile::copy(src, dst);
-}
-
-bool MulticastClient::copyDirectory(const QString& sourceDir, const QString& destDir, bool overwrite)
-{
-    QDir srcDir(sourceDir);
-    if(!srcDir.exists())
-        return false;
-
-    QDir dstDir(destDir);
-    if(!dstDir.exists())
-        dstDir.mkpath(".");
-
-    foreach(QString fileName, srcDir.entryList(QDir::Files))
-    {
-        QString srcFile = sourceDir + "/" + fileName;
-        QString dstFile = destDir + "/" + fileName;
-
-        if(overwrite && QFile::exists(dstFile))
-            QFile::remove(dstFile);
-
-        QFile::copy(srcFile, dstFile);
-    }
-
-    foreach(QString dirName, srcDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot))
-    {
-        QString srcSub = sourceDir + "/" + dirName;
-        QString dstSub = destDir + "/" + dirName;
-
-        copyDirectory(srcSub, dstSub, overwrite);
-    }
-
-    return true;
 }

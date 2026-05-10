@@ -1,0 +1,7 @@
+[Nemo Action]
+Name=Multicast ile Script Çalıştır
+Comment=Seçilen dosyayı multicast ile gönder
+Exec=/usr/bin/multicastfiletransferserver --mode script --target tmp %F
+Icon-Name=network-transmit
+Selection=any
+Extensions=sh;

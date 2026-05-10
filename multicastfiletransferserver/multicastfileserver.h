@@ -25,6 +25,12 @@
 #define NACK 3
 #define DONE 4
 #define PROGRESS 5
+
+#define DEB_START         6
+#define DEB_DONE          7
+#define SCRIPT_START      8
+#define SCRIPT_DONE       9
+
 enum class TransferType {
     FileCopyDesktop,
     FileCopyHome,
@@ -68,6 +74,10 @@ public:
 
 signals:
     void clientProgressChanged(QString client, int percent);
+    void clientDebInstallStart(QString client, QString status);
+    void clientDebInstallDone(QString client, QString status);
+    void clientScriptInstallStart(QString client, QString status);
+    void clientScriptInstallDone(QString client, QString status);
     void allTransferFinished();
     void transferFinished(QString sender,
                              QString receiver,

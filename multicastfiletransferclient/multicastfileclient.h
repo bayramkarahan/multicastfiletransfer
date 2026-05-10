@@ -8,10 +8,13 @@
 #include <QDataStream>
 #include <QDateTime>
 #include <QFileInfo>
-#include <QNetworkInterface>   // 🔥 eklendi
+#include <QNetworkInterface>
 #include<QDir>
 #include<QStandardPaths>
 #include<QProcess>
+#include<userprivilegehelper.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 #define MULTICAST_IP "239.255.7.1"
 #define PORT 45454
@@ -23,6 +26,11 @@
 #define NACK 3
 #define DONE 4
 #define PROGRESS 5
+#define DEB_START         6
+#define DEB_DONE          7
+#define SCRIPT_START      8
+#define SCRIPT_DONE       9
+
 enum class TransferType {
     FileCopyDesktop,
     FileCopyHome,
@@ -48,8 +56,11 @@ public:
     void start();
     QString resolveTargetPath(TransferType type, const QString& customPath = "");
     bool copyFile(const QString& src, const QString& dstDir, bool overwrite);
-    bool copyDirectory(const QString& sourceDir, const QString& destDir, bool overwrite);
-
+    QString getDesktopPathFromHome(const QString &home);
+    void debInstallStart();
+    void debInstallDone(QString status);
+    void scriptInstallStart();
+    void scriptInstallDone(QString status);
 signals:
     void fileReceived(QString tmpPath,
                       QString destPath,
@@ -66,9 +77,11 @@ private slots:
     void saveFile();
     void resetState();
     void sendDone();
+
     QString generateFileName(const QString& dir, const QString& baseName);
     void sendProgress(int percent);
-    QString getLocalIp();   // 🔥 eklendi
+    QString getLocalIp();
+
 private:
     QUdpSocket socket;
     QHostAddress serverAddress;

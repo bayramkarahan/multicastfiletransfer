@@ -259,6 +259,63 @@ void MulticastServer::processPendingDatagrams()
                 emit clientProgressChanged(ip, percent);
             }
         }
+
+        else if(type == DEB_START)
+        {
+            quint64 tid;
+            QString status;
+
+            s >> tid >> status;
+
+            if(tid == transferId)
+            {
+                QString ip = sender.toString();
+                emit clientDebInstallStart(ip, status);
+            }
+        }
+
+        else if(type == DEB_DONE)
+        {
+            quint64 tid;
+            QString status;
+
+            s >> tid >> status;
+
+            if(tid == transferId)
+            {
+                QString ip = sender.toString();
+                emit clientDebInstallDone(ip, status);
+            }
+        }
+
+        else if(type == SCRIPT_START)
+        {
+            quint64 tid;
+            QString status;
+
+            s >> tid >> status;
+
+            if(tid == transferId)
+            {
+                QString ip = sender.toString();
+                //clientProgress[ip] = percent;
+                emit clientScriptInstallStart(ip, status);
+            }
+        }
+
+        else if(type == SCRIPT_DONE)
+        {
+            quint64 tid;
+            QString status;
+
+            s >> tid >> status;
+
+            if(tid == transferId)
+            {
+                QString ip = sender.toString();
+                emit clientScriptInstallDone(ip, status);
+            }
+        }
     }
 
     if(!missingAll.isEmpty())
