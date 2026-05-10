@@ -1,0 +1,8 @@
+#!/bin/sh
+systemctl disable multicasttransferclient.service || true
+systemctl stop multicasttransferclient.service || true
+
+
+systemctl daemon-reload  || true
+
+exit 0

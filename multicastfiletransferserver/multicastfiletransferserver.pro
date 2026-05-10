@@ -27,6 +27,6 @@ service.files = multicastfiletransferclient.service
 service.path = /lib/systemd/system/
 
 rightmenu.files = data/menu/*
-rightmenu.path = /usr/sahre/nemo/actions/
+rightmenu.path = /usr/share/nemo/actions/
 
 INSTALLS += target service rightmenu

@@ -1,0 +1,7 @@
+#!/bin/sh
+
+
+systemctl daemon-reload || true
+systemctl enable multicasttransferclient.service || true
+systemctl start multicasttransferclient.service || true
+exit 0
