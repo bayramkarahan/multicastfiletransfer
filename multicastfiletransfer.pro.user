@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE QtCreatorProject>
-<!-- Written by QtCreator 9.0.2, 2026-05-09T13:24:46. -->
+<!-- Written by QtCreator 9.0.2, 2026-05-10T20:42:12. -->
 <qtcreator>
  <data>
   <variable>EnvironmentId</variable>
@@ -236,8 +236,9 @@
     <valuelist type="QVariantList" key="CustomOutputParsers"/>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/home/etapadmin/Masaüstü/multicastfile/multicastfile/multicastfiletransferclient/multicastfiletransferclient.pro</value>
-    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/etapadmin/Masaüstü/multicastfile/multicastfile/multicastfiletransferclient/multicastfiletransferclient.pro</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">multicastfiletransferclient2</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/home/etapadmin/Masaüstü/multicastfiletransfer/multicastfiletransferclient/multicastfiletransferclient.pro</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/etapadmin/Masaüstü/multicastfiletransfer/multicastfiletransferclient/multicastfiletransferclient.pro</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>
@@ -252,8 +253,9 @@
     <valuelist type="QVariantList" key="CustomOutputParsers"/>
     <value type="int" key="PE.EnvironmentAspect.Base">2</value>
     <valuelist type="QVariantList" key="PE.EnvironmentAspect.Changes"/>
-    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/home/etapadmin/Masaüstü/multicastfile/multicastfile/multicastfiletransferserver/multicastfiletransferserver.pro</value>
-    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/etapadmin/Masaüstü/multicastfile/multicastfile/multicastfiletransferserver/multicastfiletransferserver.pro</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.DisplayName">multicastfiletransferserver2</value>
+    <value type="QString" key="ProjectExplorer.ProjectConfiguration.Id">Qt4ProjectManager.Qt4RunConfiguration:/home/etapadmin/Masaüstü/multicastfiletransfer/multicastfiletransferserver/multicastfiletransferserver.pro</value>
+    <value type="QString" key="ProjectExplorer.RunConfiguration.BuildKey">/home/etapadmin/Masaüstü/multicastfiletransfer/multicastfiletransferserver/multicastfiletransferserver.pro</value>
     <value type="bool" key="RunConfiguration.UseCppDebugger">false</value>
     <value type="bool" key="RunConfiguration.UseCppDebuggerAuto">true</value>
     <value type="bool" key="RunConfiguration.UseLibrarySearchPath">true</value>

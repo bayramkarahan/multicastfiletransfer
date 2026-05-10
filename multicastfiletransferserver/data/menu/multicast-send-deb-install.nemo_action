@@ -1,7 +1,7 @@
 [Nemo Action]
 Name=Multicast ile Deb Kur
 Comment=Seçilen dosyayı multicast ile gönder
-Exec=/usr/bin/multicastfiletransferserver --mode deb --target tmp %F
+Exec=/usr/bin/multicastfiletransferserver --mode rightclick --target deb %F
 Icon-Name=network-transmit
 Selection=any
 Extensions=deb;
