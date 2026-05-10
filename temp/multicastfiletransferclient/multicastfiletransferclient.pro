@@ -1,8 +1,6 @@
-QT       += core network
-CONFIG += console
-#LIBS += -lz
-TARGET = multicastfiletransferclient
-TEMPLATE = app
+QT       += core gui network
+LIBS += -lz
+
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++17
@@ -13,17 +11,13 @@ CONFIG += c++17
 
 SOURCES += \
     main.cpp \
-    multicastfileclient.cpp
+    multicastfiletransferclient.cpp
 
 HEADERS += \
-    multicastfileclient.h \
+    multicastfiletransferclient.h \
     protocol.h
 
-
-
-
-target.path = /usr/bin
-service.files = multicastfiletransferclient.service
-service.path = /lib/systemd/system/
-
-INSTALLS += target service
+# Default rules for deployment.
+qnx: target.path = /tmp/$${TARGET}/bin
+else: unix:!android: target.path = /opt/$${TARGET}/bin
+!isEmpty(target.path): INSTALLS += target

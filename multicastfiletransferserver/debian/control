@@ -1,0 +1,13 @@
+Source: multicasttransferserver
+Section: utils
+Priority: optional
+Maintainer: Bayram KARAHAN <bayramk@gmail.com>
+Build-Depends: debhelper (>= 9), 
+    qtdeclarative5-dev
+Standards-Version: 3.9.8
+Homepage: http://bayramkarahan.com.tr
+
+Package: multicasttransferserver
+Architecture: amd64
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: betikyukleyici Uygulaması

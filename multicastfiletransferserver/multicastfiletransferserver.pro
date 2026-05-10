@@ -1,6 +1,7 @@
-QT       += core gui network
-
-LIBS += -lz
+QT       += core gui network concurrent
+TARGET = multicastfiletransferserver
+TEMPLATE = app
+#LIBS += -lz
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -12,13 +13,20 @@ CONFIG += c++17
 
 SOURCES += \
     main.cpp \
-    multicastfiletransferserver.cpp
+    multicastfileserver.cpp \
+    progressdialog.cpp
 
 HEADERS += \
-    multicastfiletransferserver.h \
+    multicastfileserver.h \
+    progressdialog.h \
     protocol.h
 
-# Default rules for deployment.
-qnx: target.path = /tmp/$${TARGET}/bin
-else: unix:!android: target.path = /opt/$${TARGET}/bin
-!isEmpty(target.path): INSTALLS += target
+
+target.path = /usr/bin
+service.files = multicastfiletransferclient.service
+service.path = /lib/systemd/system/
+
+rightmenu.files = data/menu/*
+rightmenu.path = /usr/sahre/nemo/actions/
+
+INSTALLS += target service rightmenu

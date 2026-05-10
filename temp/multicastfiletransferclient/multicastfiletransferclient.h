@@ -6,7 +6,7 @@
 #include <QFile>
 #include <QMap>
 #include <QHostAddress>
-
+#include <QDir>
 #include "protocol.h"
 
 class MulticastFileTransferClient : public QObject
@@ -18,7 +18,10 @@ public:
     void start();
 
 signals:
-    void transferFinished(QString fileName);
+    void transferFinished(QString fileName,
+                              QString alternativeName,
+                              QString userName,
+                              QString fileType);
 
 private slots:
     void readPending();
@@ -39,14 +42,15 @@ private:
     QString originalFileName;
     QString currentFileName;
 
-    QMap<quint32, QByteArray> buffer;
-
     quint32 currentFileId = 0;
     quint32 totalPackets  = 0;
 
-    QHostAddress currentServerIp;   // 🔥 dinamik server ip
+    QHostAddress currentServerIp;
 
     const int CHUNK = 1400 - sizeof(PacketHeader);
+    QString lastAlternativeName;
+    QString lastUserName;
+    QString lastFileType;
 };
 
 #endif

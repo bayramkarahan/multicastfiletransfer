@@ -1,0 +1,11 @@
+ [Unit]
+Description=e-ag-client Başlatıldı.
+After=multi-user.target
+
+[Service]
+Type=simple
+
+ExecStart=/usr/bin/multicastfiletransferclient
+
+[Install]
+WantedBy=multi-user.target

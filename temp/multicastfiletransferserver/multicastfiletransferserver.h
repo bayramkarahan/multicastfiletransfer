@@ -18,9 +18,14 @@ class MulticastFileTransferServer : public QObject
 public:
     explicit MulticastFileTransferServer(QObject *parent=nullptr);
 
-    void sendFile(const QString &path,
-                  const QHostAddress &serverIp,
-                  const QList<QHostAddress> &targets);
+    void  sendFile(const QString &path,
+                       const QHostAddress &serverIp,
+                       const QList<QHostAddress> &targets,
+                       bool overwrite,
+                       const QString &clientSavePath,
+                       const QString &alternativeName,
+                       const QString &userName,
+                       const QString &fileType);
 
     void sendPrivateMessage(QHostAddress ip, QString msg);
 
@@ -33,9 +38,15 @@ private slots:
 
 private:
     void sendMeta(
-            const QString &fullname,
+            const QString &fileName,
             const QHostAddress &serverIp,
-            const QList<QHostAddress> &targets);
+            const QList<QHostAddress> &targets,
+            bool overwrite,
+            const QString &clientSavePath,
+            const QString &alternativeName,
+            const QString &userName,
+            const QString &fileType);
+
     void sendChunk(quint32 seq);
     quint32 crc32(const QByteArray &data);
 

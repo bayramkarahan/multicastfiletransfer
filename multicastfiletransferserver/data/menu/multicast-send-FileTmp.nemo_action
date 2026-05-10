@@ -1,0 +1,7 @@
+[Nemo Action]
+Name=Multicast ile tmp Dizinine Gönder
+Comment=Seçilen dosyayı multicast ile gönder
+Exec=/usr/bin/multicastfiletransferserver --mode rightclick --target ask %F
+Icon-Name=network-transmit
+Selection=any
+Extensions=any;

@@ -27,10 +27,14 @@ MulticastFileTransferServer::MulticastFileTransferServer(QObject *parent)
             this,&MulticastFileTransferServer::resendTimeout);
 }
 
-void MulticastFileTransferServer::sendFile(
-        const QString &path,
-        const QHostAddress &serverIp,
-        const QList<QHostAddress> &targets)
+void MulticastFileTransferServer::sendFile(const QString &path,
+                                            const QHostAddress &serverIp,
+                                            const QList<QHostAddress> &targets,
+                                            bool overwrite,
+                                            const QString &clientSavePath,
+                                            const QString &alternativeName,
+                                            const QString &userName,
+                                            const QString &fileType)
 {
     finishedClients.clear();
 
@@ -46,7 +50,13 @@ void MulticastFileTransferServer::sendFile(
 
     QFileInfo fi(path);
 
-    sendMeta(fi.fileName(), serverIp, targets);
+    sendMeta(fi.fileName(),
+             serverIp,
+             targets,
+             overwrite,clientSavePath,
+             alternativeName,
+             userName,
+             fileType);
 
     resendTimer.start();
 
@@ -71,12 +81,23 @@ void MulticastFileTransferServer::sendFile(
     resendTimer.stop();
 }
 
+
 void MulticastFileTransferServer::sendMeta(
-        const QString &fullname,
+        const QString &fileName,
         const QHostAddress &serverIp,
-        const QList<QHostAddress> &targets)
+        const QList<QHostAddress> &targets,
+        bool overwrite,
+        const QString &clientSavePath,
+        const QString &alternativeName,
+        const QString &userName,
+        const QString &fileType)
 {
-    QByteArray name = fullname.toUtf8();
+    QByteArray name = fileName.toUtf8();
+    QByteArray savePath = clientSavePath.toUtf8();
+
+    QByteArray alt = alternativeName.toUtf8();
+    QByteArray user = userName.toUtf8();
+    QByteArray type = fileType.toUtf8();
 
     PacketHeader h{};
     h.type = META;
@@ -84,7 +105,13 @@ void MulticastFileTransferServer::sendMeta(
     h.total = totalPackets;
     h.size = name.size();
     h.targetCount = targets.size();
-    h.serverIp = serverIp.toIPv4Address();   // 🔥 burası önemli
+    h.serverIp = serverIp.toIPv4Address();
+    h.overwrite = overwrite ? 1 : 0;
+    h.pathSize = savePath.size();
+
+    h.altNameSize = alt.size();
+    h.userNameSize = user.size();
+    h.fileTypeSize = type.size();
 
     QByteArray d;
     d.append(reinterpret_cast<char*>(&h), sizeof(h));
@@ -92,15 +119,17 @@ void MulticastFileTransferServer::sendMeta(
     for(const auto &ip : targets)
     {
         quint32 addr = ip.toIPv4Address();
-        d.append(reinterpret_cast<char*>(&addr),
-                 sizeof(addr));
+        d.append(reinterpret_cast<char*>(&addr), sizeof(addr));
     }
 
     d.append(name);
+    d.append(savePath);
+    d.append(alt);
+    d.append(user);
+    d.append(type);
 
     dataSocket.writeDatagram(d, group, port);
 }
-
 void MulticastFileTransferServer::sendChunk(quint32 seq)
 {
     QByteArray chunk = fileData.mid(seq * CHUNK, CHUNK);

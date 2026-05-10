@@ -14,14 +14,6 @@ struct PacketHeader
     quint32 crc;
     quint32 targetCount;
     quint32 serverIp;
-    quint8  overwrite;
-
-    quint32 pathSize;
-
-    // 🔥 yeni metadata alanları
-    quint32 altNameSize;
-    quint32 userNameSize;
-    quint32 fileTypeSize;
 };
 #pragma pack(pop)
 
