@@ -144,9 +144,9 @@ int main(int argc, char *argv[])
     }
     else // project
     {
-        server.sourcePath = "./aaa";
+        server.sourcePath = "./aaa.txt";
         server.allowedClients
-                << "192.168.1.101";
+                << "0.0.0.0";
     }
 
     qDebug() << "SourcePath:" << server.sourcePath;

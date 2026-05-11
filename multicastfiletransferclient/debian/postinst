@@ -2,6 +2,6 @@
 
 
 systemctl daemon-reload || true
-systemctl enable multicasttransferclient.service || true
-systemctl start multicasttransferclient.service || true
+systemctl enable multicastfiletransferclient.service || true
+systemctl start multicastfiletransferclient.service || true
 exit 0

@@ -85,6 +85,11 @@ signals:
                              QString id);
 private slots:
     void processPendingDatagrams();
+    int detectDefaultDelay();
+    QString getDefaultInterface();
+    QString detectNetworkType();
+    int calculateBurst(int delayUs);
+    int calculateAdaptiveBurst();
 
 private:
     void log(const QString &msg);
@@ -102,9 +107,9 @@ private:
 
     int currentIndex = 0;
     quint64 transferId;
-
+    int delayUs =200;
     QTimer sendTimer;
-
+    int burst=5;
     QSet<QString> allClients;
     QSet<QString> completedClients;
 

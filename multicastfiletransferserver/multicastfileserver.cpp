@@ -16,7 +16,10 @@ void MulticastServer::log(const QString &msg)
 void MulticastServer::start()
 {
     log("SERVER START");
+    delayUs = detectDefaultDelay();
+    log(QString("Initial delay: %1 us").arg(delayUs));
 
+    socket.setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 32*1024*1024);
     scanPath(sourcePath);
 
     if(jobQueue.isEmpty())
@@ -71,7 +74,7 @@ void MulticastServer::scanPath(const QString &path)
             job.absolutePath = filePath;
 
             QString rel = baseDir.relativeFilePath(filePath);
-            job.relativePath = baseName + "/" + rel;   // 🔥 tek doğru çözüm
+            job.relativePath = baseName + "/" + rel;   // doğru çözüm
 
             job.data = f.readAll();
             job.totalPackets = (job.data.size()+PACKET_SIZE-1)/PACKET_SIZE;
@@ -97,18 +100,21 @@ void MulticastServer::startNextJob()
     completedClients.clear();
     allClients.clear();
 
-    // 🔥 allowed varsa direkt ekle
+    // allowed varsa direkt ekle
     if(!allowedClients.isEmpty())
         allClients = QSet<QString>(allowedClients.begin(), allowedClients.end());
 
     sendMeta();
-
+    QThread::msleep(100);
+    burst = calculateBurst(delayUs);
+    log(QString("Brust Değeri: %1").arg((quint32)burst));
     sendTimer.stop();
     disconnect(&sendTimer, nullptr, nullptr, nullptr);
 
     connect(&sendTimer, &QTimer::timeout, this, [this]()
-    {
-        int burst = 5;
+    {        
+        // HER TICK'te güncelle
+        burst = calculateAdaptiveBurst();
 
         for(int i=0;i<burst && currentIndex<currentJob.totalPackets;i++)
             sendPacket(currentIndex++);
@@ -146,6 +152,8 @@ void MulticastServer::sendMeta()
         allClients = QSet<QString>(allowedClients.begin(), allowedClients.end());
     }
     log("META: " + currentJob.relativePath);
+    log(QString("File size %1").arg((quint32)currentJob.data.size()));
+    log(QString("Total packets %1").arg((quint32)currentJob.totalPackets));
 }
 
 void MulticastServer::sendPacket(int index)
@@ -330,4 +338,119 @@ void MulticastServer::processPendingDatagrams()
 
         sendEnd();
     }
+}
+
+int MulticastServer::detectDefaultDelay()
+{
+    QString type = detectNetworkType();
+
+    if(type == "wifi")
+    {
+        log("Network: WIFI");
+        return 250;
+    }
+    else if(type == "ethernet")
+    {
+        log("Network: ETHERNET");
+        return 80;
+    }
+
+    log("Network: UNKNOWN");
+    return 150;
+}
+
+QString MulticastServer::getDefaultInterface()
+{
+    QFile f("/proc/net/route");
+    if(!f.open(QIODevice::ReadOnly))
+        return "";
+
+    while(!f.atEnd())
+    {
+        QByteArray line = f.readLine();
+        QList<QByteArray> parts = line.split('\t');
+
+        if(parts.size() > 1 && parts[1] == "00000000")
+        {
+            return parts[0];
+        }
+    }
+
+    return "";
+}
+
+QString MulticastServer::detectNetworkType()
+{
+    QString activeIface;
+
+    for (const QNetworkInterface &iface : QNetworkInterface::allInterfaces())
+    {
+        //log(QString("%1 | %2")
+        //   .arg(iface.name())
+        // .arg(iface.humanReadableName()));
+
+        // sadece çalışanlar
+        if (!(iface.flags() & QNetworkInterface::IsUp) ||
+            !(iface.flags() & QNetworkInterface::IsRunning))
+            continue;
+
+        // loopback skip
+        if (iface.flags() & QNetworkInterface::IsLoopBack)
+            continue;
+
+        // IP var mı?
+        for (const QNetworkAddressEntry &entry : iface.addressEntries())
+        {
+            if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol)
+            {
+                activeIface = iface.name();
+                log("ACTIVE IFACE: " + activeIface);
+
+                // 🔥 Linux naming standard
+                if (activeIface.startsWith("wl"))
+                    return "wifi";
+
+                if (activeIface.startsWith("en") || activeIface.startsWith("eth"))
+                    return "ethernet";
+
+                return "unknown";
+            }
+        }
+    }
+
+    return "unknown";
+}
+
+int MulticastServer::calculateBurst(int delayUs)
+{
+    if(delayUs <= 50)   return 8;
+    if(delayUs <= 100)  return 6;
+    if(delayUs <= 200)  return 5;
+    return 3;
+}
+
+
+int MulticastServer::calculateAdaptiveBurst()
+{
+    int base = calculateBurst(delayUs);
+
+    int total = allClients.size();
+    int done  = completedClients.size();
+
+    if(total == 0)
+        return base;
+
+    double ratio = (double)done / total;
+
+    if(ratio < 0.5)
+        base -= 2;
+    else if(ratio < 0.8)
+        base -= 1;
+    else
+        base += 1;
+
+    if(base < 2) base = 2;
+    if(base > 10) base = 10;
+
+    return base;
 }

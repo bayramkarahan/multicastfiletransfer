@@ -10,7 +10,7 @@ ProgressDialog::ProgressDialog(const QStringList &clients, QWidget *parent)
     : QDialog(parent)
 {
     setWindowTitle("Multicast Dosya Transfer İzleyici");
-    resize(500, 300);
+    resize(600, 300);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
 
@@ -33,6 +33,9 @@ ProgressDialog::ProgressDialog(const QStringList &clients, QWidget *parent)
     scroll->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
     scroll->setMinimumHeight(0);
     scroll->setMaximumHeight(150);
+    // Scroll barları kapat
+    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scroll->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     container = new QWidget;
     container->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -54,7 +57,7 @@ ProgressDialog::ProgressDialog(const QStringList &clients, QWidget *parent)
 
     int count = progressBars.size();
     int newHeight = calcHeight(count);
-    scroll->setFixedHeight(newHeight);
+    //scroll->setFixedHeight(newHeight);
     container->setFixedHeight(count*20);
     this->resize(this->width(), newHeight);
 }
@@ -71,7 +74,7 @@ void ProgressDialog::updateProgress(const QString &ip, int percent)
         row->setContentsMargins(0,0,0,0);
 
         QLabel *label = new QLabel(ip);
-        label->setFixedWidth(90);
+        label->setFixedWidth(120);
 
         QProgressBar *bar = new QProgressBar;
         bar->setRange(0, 100);
@@ -98,17 +101,18 @@ void ProgressDialog::updateProgress(const QString &ip, int percent)
 
         progressBars[ip] = bar;
         clientPercents[ip] = 0;
-        // 🔥 WINDOW HEIGHT UPDATE
+        // WINDOW HEIGHT UPDATE
         int count = progressBars.size();
         int newHeight = calcHeight(count);
 
-        if(count*20>yukseklik)
-            scroll->setFixedHeight(yukseklik);
-        else
-            scroll->setFixedHeight(count*22);
+       // if(count*20>yukseklik)
+       //     scroll->setFixedHeight(count*20);
+       // else
+            scroll->setFixedHeight(count*19);
 
         container->setFixedHeight(count*20);
-        this->resize(this->width(), newHeight);
+        //this->resize(this->width(), newHeight);
+        this->resize(this->width(), count*20);
 
     }
 
