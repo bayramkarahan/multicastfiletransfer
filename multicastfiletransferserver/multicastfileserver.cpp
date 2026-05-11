@@ -20,6 +20,7 @@ void MulticastServer::start()
     log(QString("Initial delay: %1 us").arg(delayUs));
 
     socket.setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 32*1024*1024);
+    socket.setSocketOption(QAbstractSocket::MulticastTtlOption, 4);
     scanPath(sourcePath);
 
     if(jobQueue.isEmpty())
@@ -105,30 +106,47 @@ void MulticastServer::startNextJob()
         allClients = QSet<QString>(allowedClients.begin(), allowedClients.end());
 
     sendMeta();
-    QThread::msleep(100);
-    burst = calculateBurst(delayUs);
-    log(QString("Brust Değeri: %1").arg((quint32)burst));
+    //QThread::msleep(100);
+
     sendTimer.stop();
-    disconnect(&sendTimer, nullptr, nullptr, nullptr);
+    sendTimer.disconnect();
+    int bw = measureNetworkCapacity();
+    burst = calculateBurstFromBandwidth(bw);
+
+    log(QString("Initial Burst (auto): %1").arg(burst));
+    interval = burst/2;
+    log(QString("Initial Interval (auto): %1").arg(interval));
 
     connect(&sendTimer, &QTimer::timeout, this, [this]()
-    {        
-        // HER TICK'te güncelle
-        burst = calculateAdaptiveBurst();
+            {
 
-        for(int i=0;i<burst && currentIndex<currentJob.totalPackets;i++)
-            sendPacket(currentIndex++);
+                int adaptiveBurst = calculateAdaptiveBurst();
+                burst = (burst + adaptiveBurst) / 2;
+                burst = qMin(burst, 6);
+                if(lastBurst != burst) {
+                    log(QString("Brust Değeri: %1").arg((quint32)burst));
+                    interval=burst/2;
+                    log(QString("Interval Değeri: %1").arg((quint32)interval));
+                    sendTimer.start(interval); // interval değiştir
+                    lastBurst = burst;
+                }
 
-        if(currentIndex >= currentJob.totalPackets)
-        {
-            sendTimer.stop();
-            sendEnd();
+                for(int i = 0; i < burst && currentIndex < currentJob.totalPackets; i++)
+                    sendPacket(currentIndex++);
 
-            log("END sent → waiting DONE...");
-        }
-    });
+                if(currentIndex >= currentJob.totalPackets)
+                {
+                    sendTimer.stop();
+                    sendEnd();
+                    log("END sent → waiting DONE...");
+                }
+            });
 
-    sendTimer.start(1);
+    QTimer::singleShot(100, this, [this]()
+                       {
+                           sendTimer.start(interval);
+                       });
+    //sendTimer.start(2);
 }
 
 void MulticastServer::sendMeta()
@@ -442,6 +460,7 @@ int MulticastServer::calculateAdaptiveBurst()
 
     double ratio = (double)done / total;
 
+    // adaptasyon
     if(ratio < 0.5)
         base -= 2;
     else if(ratio < 0.8)
@@ -454,3 +473,46 @@ int MulticastServer::calculateAdaptiveBurst()
 
     return base;
 }
+
+int MulticastServer::measureNetworkCapacity()
+{
+    const int testDurationMs = 500;
+    const int packetSize = 1200; // gerçek paketine yakın olsun
+
+    QByteArray dummy(packetSize, 'A');
+
+    QElapsedTimer timer;
+    timer.start();
+
+    int sentBytes = 0;
+
+    while(timer.elapsed() < testDurationMs)
+    {
+        socket.writeDatagram(dummy, QHostAddress(MULTICAST_IP), PORT);
+        sentBytes += packetSize;
+    }
+
+    // bytes/sec
+    double bytesPerSec = (sentBytes * 1000.0) / testDurationMs;
+
+    log(QString("Measured throughput: %1 KB/s").arg(bytesPerSec / 1024.0));
+
+    return static_cast<int>(bytesPerSec);
+}
+
+int MulticastServer::calculateBurstFromBandwidth(int bytesPerSec)
+{
+    // saniyede kaç paket?
+    int packetsPerSec = bytesPerSec / 1200;
+
+    // timer 2ms → saniyede 500 tick
+    int ticksPerSec = 1000 / 2;
+
+    int burst = packetsPerSec / ticksPerSec;
+
+    if(burst < 2) burst = 2;
+    if(burst > 10) burst = 10;
+
+    return burst;
+}
+

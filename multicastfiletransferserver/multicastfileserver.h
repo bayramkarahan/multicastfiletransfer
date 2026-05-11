@@ -90,6 +90,8 @@ private slots:
     QString detectNetworkType();
     int calculateBurst(int delayUs);
     int calculateAdaptiveBurst();
+    int calculateBurstFromBandwidth(int bytesPerSec);
+    int measureNetworkCapacity();
 
 private:
     void log(const QString &msg);
@@ -110,6 +112,9 @@ private:
     int delayUs =200;
     QTimer sendTimer;
     int burst=5;
+    int lastBurst=-1;
+    int interval=2;
+
     QSet<QString> allClients;
     QSet<QString> completedClients;
 
