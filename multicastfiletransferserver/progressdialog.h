@@ -18,9 +18,9 @@ public:
     int yukseklik=150;
     void updateProgress(const QString &ip, int percent);
     void markDone(const QString &ip);
-    void markDebInstallStart(const QString &ip,const QString &status);
+    void markDebInstallStart(const QString &ip);
     void markDebInstallDone(const QString &ip,const QString &status);
-    void markScriptInstallStart(const QString &ip,const QString &status);
+    void markScriptInstallStart(const QString &ip);
     void markScriptInstallDone(const QString &ip,const QString &status);
 
 

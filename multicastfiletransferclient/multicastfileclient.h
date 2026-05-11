@@ -12,7 +12,6 @@
 #include<QDir>
 #include<QStandardPaths>
 #include<QProcess>
-#include<userprivilegehelper.h>
 #include <unistd.h>
 #include <sys/stat.h>
 
@@ -61,6 +60,7 @@ public:
     void debInstallDone(QString status);
     void scriptInstallStart();
     void scriptInstallDone(QString status);
+    QString getActiveUser();
 signals:
     void fileReceived(QString tmpPath,
                       QString destPath,

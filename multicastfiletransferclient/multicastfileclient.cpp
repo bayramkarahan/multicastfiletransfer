@@ -258,6 +258,7 @@ void MulticastClient::sendDone()
 
 void MulticastClient::debInstallStart()
 {
+      log("debInstallStart");
     QUdpSocket s;
 
     QByteArray msg;
@@ -271,6 +272,7 @@ void MulticastClient::debInstallStart()
 
 void MulticastClient::debInstallDone(QString status)
 {
+    log("debInstallDone");
     QUdpSocket s;
 
     QByteArray msg;
@@ -278,12 +280,14 @@ void MulticastClient::debInstallDone(QString status)
 
     stream << (quint32)DEB_DONE;
     stream << currentTransferId;
+    stream << status;
 
     s.writeDatagram(msg, serverAddress, NACK_PORT);
 }
 
 void MulticastClient::scriptInstallStart()
 {
+    log("scriptInstallStart");
     QUdpSocket s;
 
     QByteArray msg;
@@ -297,6 +301,7 @@ void MulticastClient::scriptInstallStart()
 
 void MulticastClient::scriptInstallDone(QString status)
 {
+    log("scriptInstallDone");
     QUdpSocket s;
 
     QByteArray msg;
@@ -304,6 +309,7 @@ void MulticastClient::scriptInstallDone(QString status)
 
     stream << (quint32)SCRIPT_DONE;
     stream << currentTransferId;
+    stream << status;
 
     s.writeDatagram(msg, serverAddress, NACK_PORT);
 }
@@ -337,19 +343,11 @@ void MulticastClient::sendProgress(int percent)
 
 QString MulticastClient::resolveTargetPath(TransferType type, const QString& customPath)
 {
-    UserPrivilegeHelper helper;
-     SessionInfo info = helper.getActiveSessionInfo();
 
-    /* if (info.valid) {
-         qDebug() << "Kullanıcı:" << info.username;
-         qDebug() << "UID/GID:" << info.uid << "/" << info.gid;
-         qDebug() << "Home:" << info.home;
-         qDebug() << "Display:" << info.display;
-         qDebug() << "Type:" << info.type;
-         qDebug() << "Service:" << info.service;
-     }*/
-     QString home = info.home;
-     QString desktop = getDesktopPathFromHome(home);
+    QString user = getActiveUser();
+    qDebug() << "Active user:" << user;
+    QString home="/home/"+user+"/";
+  QString desktop = getDesktopPathFromHome(home);
 
     switch(type)
     {
@@ -407,4 +405,17 @@ bool MulticastClient::copyFile(const QString& src, const QString& dstDir, bool o
         QFile::remove(dst);
 
     return QFile::copy(src, dst);
+}
+
+
+QString MulticastClient::getActiveUser()
+{
+    QProcess process;
+    process.start("bash", QStringList() << "-c"
+        << "loginctl list-sessions --no-legend | awk '$4==\"seat0\"{print $3}'");
+
+    process.waitForFinished();
+
+    QString output = process.readAllStandardOutput().trimmed();
+    return output;
 }

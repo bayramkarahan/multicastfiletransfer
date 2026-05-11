@@ -159,7 +159,7 @@ void ProgressDialog::markDone(const QString &ip)
     }
 }
 
-void ProgressDialog::markDebInstallStart(const QString &ip,const QString &status)
+void ProgressDialog::markDebInstallStart(const QString &ip)
 {
     if(progressBars.contains(ip))
     {
@@ -215,7 +215,7 @@ void ProgressDialog::markDebInstallDone(const QString &ip,const QString &status)
     */}
 }
 
-void ProgressDialog::markScriptInstallStart(const QString &ip,const QString &status)
+void ProgressDialog::markScriptInstallStart(const QString &ip)
 {
     if(progressBars.contains(ip))
     {
@@ -248,7 +248,7 @@ void ProgressDialog::markScriptInstallDone(const QString &ip,const QString &stat
     if(progressBars.contains(ip))
     {
         progressBars[ip]->setValue(100);
-        progressBars[ip]->setFormat("DEB INSTALL START DONE");
+        progressBars[ip]->setFormat("SCRIPT INSTALL START DONE");
 
 
         progressBars[ip]->setStyleSheet(

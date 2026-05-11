@@ -7,26 +7,14 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
      MulticastClient client;
 
-/*QString home = QDir::homePath();
-QString desktop = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
- qDebug() << "home"<<home;
-  qDebug() << "desktop"<<desktop;
+     QString user = client.getActiveUser();
+     qDebug() << "Active user:" << user;
+     QString home="/home/"+user+"/";
 
-  UserPrivilegeHelper helper;
-   SessionInfo info = helper.getActiveSessionInfo();
-*/
-  /* if (info.valid) {
-       qDebug() << "Kullanıcı:" << info.username;
-       qDebug() << "UID/GID:" << info.uid << "/" << info.gid;
-       qDebug() << "Home:" << info.home;
-       qDebug() << "Display:" << info.display;
-       qDebug() << "Type:" << info.type;
-       qDebug() << "Service:" << info.service;
-   }*/
-   /*QString homee = info.home;
-   QString desktopp = client.getDesktopPathFromHome(homee);
-   qDebug() << "homee"<<homee;
-    qDebug() << "desktopp"<<desktopp;*/
+   QString desktop = client.getDesktopPathFromHome(home);
+
+   qDebug() << "home"<<home;
+    qDebug() << "desktop"<<desktop;
     // CLIENT için ayrı program olarak çalıştırılacak
 
     // MulticastClient client;
@@ -37,8 +25,7 @@ QString desktop = QStandardPaths::writableLocation(QStandardPaths::DesktopLocati
      QObject::connect(&client, &MulticastClient::fileReceived,
                       [&client](QString tmpPath, QString destPath, QString name, QString id, TransferType type,bool overWrite)
                       {
-                            UserPrivilegeHelper helper;
-                            SessionInfo info = helper.getActiveSessionInfo();
+
                           QString customPath=destPath;
                           QString targetRoot = client.resolveTargetPath(type, customPath);
                           qDebug() << "CLIENT FILE DONE:";
@@ -64,7 +51,7 @@ QString desktop = QStandardPaths::writableLocation(QStandardPaths::DesktopLocati
                                      QFileInfo fi(finalTargetPath);
                                      QDir().mkpath(fi.path());
                                      client.copyFile(fullSourcePath, fi.path(), overWrite);
-                                     ::chown(fi.filePath().toUtf8().constData(), info.uid, info.gid);
+                                     //::chown(fi.filePath().toUtf8().constData(), info.uid, info.gid);
                                      ::chmod(fi.filePath().toUtf8().constData(), 0644);
                                      break;
                                  }
@@ -74,27 +61,10 @@ QString desktop = QStandardPaths::writableLocation(QStandardPaths::DesktopLocati
                                     client.debInstallStart();
                                     /************************/
                                      QString filePath = fullSourcePath;
-                                     QProcess *p = new QProcess();
-
-                                     QObject::connect(
-                                         p,
-                                         QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-                                         p,
-                                         [&, p](int code, QProcess::ExitStatus status)
-                                         {
-                                             Q_UNUSED(status)
-
-                                             if(code == 0){
-                                                 client.debInstallDone("0");
-                                             }else{
-                                                 qDebug() << "DEB FAILED:" << p->readAllStandardError();
-                                             client.debInstallDone("1");
-                                             }
-                                             p->deleteLater();
-                                         }
-                                     );
-
-                                     p->start("dpkg", {"-i", filePath});
+                                     QProcess p;
+                                     p.start("dpkg", {"-i", filePath});
+                                     p.waitForFinished();
+                                     client.debInstallDone(p.exitCode() == 0 ? "0" : "1");
                                      /************************/
                                      break;
                                  }
@@ -104,26 +74,12 @@ QString desktop = QStandardPaths::writableLocation(QStandardPaths::DesktopLocati
                                      QString filePath = fullSourcePath;
                                      QFile::setPermissions(filePath,
                                          QFileDevice::ExeUser | QFileDevice::ReadUser);
-                                     ::chown(filePath.toUtf8().constData(), info.uid, info.gid);
+                                     //::chown(filePath.toUtf8().constData(), info.uid, info.gid);
                                      client.scriptInstallStart();
-
-                                     QProcess *p = new QProcess();
-                                     /************************/
-                                     QObject::connect(p, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-                                                      [&](int code, QProcess::ExitStatus status)
-                                     {
-                                         Q_UNUSED(status)
-
-                                         if(code == 0){
-                                             client.scriptInstallDone("0");
-                                         }else{
-                                             qDebug() << "SCRIPT FAILED:" << p->readAllStandardError();
-                                         client.scriptInstallDone("1");
-                                         }
-                                         p->deleteLater();
-                                     });
-
-                                     p->start("bash", {filePath});
+                                     QProcess p;
+                                     p.start("/bin/bash", QStringList() << filePath);
+                                     p.waitForFinished();
+                                     client.scriptInstallDone(p.exitCode() == 0 ? "0" : "1");
                                      /************************/
                                      break;
                                  }

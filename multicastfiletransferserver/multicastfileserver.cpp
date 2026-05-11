@@ -289,14 +289,12 @@ void MulticastServer::processPendingDatagrams()
         else if(type == DEB_START)
         {
             quint64 tid;
-            QString status;
-
-            s >> tid >> status;
+            s >> tid;
 
             if(tid == transferId)
             {
                 QString ip = sender.toString();
-                emit clientDebInstallStart(ip, status);
+                emit clientDebInstallStart(ip);
             }
         }
 
@@ -317,15 +315,12 @@ void MulticastServer::processPendingDatagrams()
         else if(type == SCRIPT_START)
         {
             quint64 tid;
-            QString status;
-
-            s >> tid >> status;
-
+            s >> tid;
             if(tid == transferId)
             {
                 QString ip = sender.toString();
                 //clientProgress[ip] = percent;
-                emit clientScriptInstallStart(ip, status);
+                emit clientScriptInstallStart(ip);
             }
         }
 

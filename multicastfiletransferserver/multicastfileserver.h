@@ -74,9 +74,9 @@ public:
 
 signals:
     void clientProgressChanged(QString client, int percent);
-    void clientDebInstallStart(QString client, QString status);
+    void clientDebInstallStart(QString client);
     void clientDebInstallDone(QString client, QString status);
-    void clientScriptInstallStart(QString client, QString status);
+    void clientScriptInstallStart(QString client);
     void clientScriptInstallDone(QString client, QString status);
     void allTransferFinished();
     void transferFinished(QString sender,

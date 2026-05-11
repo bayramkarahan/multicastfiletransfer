@@ -1,0 +1,10 @@
+<action>
+    <icon>network-transmit</icon>
+    <name>Multicast ile Masaüstüne Gönder</name>
+    <unique-id>multicast-script</unique-id>
+    <command>/usr/bin/multicastfiletransferserver --mode rightclick --target desktop %F</command>
+    <description>Seçilen scripti multicast ile gönder</description>
+    <patterns>*.sh</patterns>
+    <other-files/>
+    <text-files/>
+</action>

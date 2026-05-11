@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
     }
     else // project
     {
-        server.sourcePath = "./aaa.txt";
+        server.sourcePath = "./ab.deb";
         server.allowedClients
                 << "0.0.0.0";
     }
@@ -190,9 +190,9 @@ int main(int argc, char *argv[])
     });
 
     QObject::connect(&server,&MulticastServer::clientDebInstallStart,
-                     [&](QString ip, QString status)
+                     [&](QString ip)
     {
-        dlg->markDebInstallStart(ip, status);
+        dlg->markDebInstallStart(ip);
     });
     QObject::connect(&server,&MulticastServer::clientDebInstallDone,
                      [&](QString ip, QString status)
@@ -200,9 +200,9 @@ int main(int argc, char *argv[])
         dlg->markDebInstallDone(ip, status);
     });
     QObject::connect(&server,&MulticastServer::clientScriptInstallStart,
-                     [&](QString ip, QString status)
+                     [&](QString ip)
     {
-        dlg->markScriptInstallStart(ip, status);
+        dlg->markScriptInstallStart(ip);
     });
     QObject::connect(&server,&MulticastServer::clientScriptInstallDone,
                      [&](QString ip, QString status)

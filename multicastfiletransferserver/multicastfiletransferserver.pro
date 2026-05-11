@@ -26,7 +26,16 @@ target.path = /usr/bin
 service.files = multicastfiletransferclient.service
 service.path = /lib/systemd/system/
 
-rightmenu.files = data/menu/*
-rightmenu.path = /usr/share/nemo/actions/
+nemomenu.files = data/nemomenu/*
+nemomenu.path = /usr/share/nemo/actions/
 
-INSTALLS += target service rightmenu
+nautilusmenu.files = data/nautilusmenu/*
+nautilusmenu.path = /usr/share/nautilus/scripts/
+
+dolphinmenu.files = data/dolphinmenu/*
+dolphinmenu.path = /usr/share/kservices5/ServiceMenus/
+
+thunarmenu.files = data/thunarmenu/*
+thunarmenu.path = /usr/share/Thunar/
+
+INSTALLS += target service nemomenu nautilusmenu dolphinmenu thunarmenu
