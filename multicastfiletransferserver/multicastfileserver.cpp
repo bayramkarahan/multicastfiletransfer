@@ -112,9 +112,10 @@ void MulticastServer::startNextJob()
     sendTimer.disconnect();
     int bw = measureNetworkCapacity();
     burst = calculateBurstFromBandwidth(bw);
-    burst=4;
+    burst=3;
     log(QString("Initial Burst (auto): %1").arg(burst));
     interval = burst/2;
+    interval=3;
     log(QString("Initial Interval (auto): %1").arg(interval));
 
     connect(&sendTimer, &QTimer::timeout, this, [this]()
