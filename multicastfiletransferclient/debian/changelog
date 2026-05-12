@@ -1,8 +1,8 @@
-multicasttransferclient (1.4.0) unstable; urgency=medium
+multicasttransferclient (1.0.4) unstable; urgency=medium
 
   * network speed adaptive
   
-multicasttransferclient (1.1.0) unstable; urgency=medium
+multicasttransferclient (1.0.1) unstable; urgency=medium
 
   * Initial Release
 

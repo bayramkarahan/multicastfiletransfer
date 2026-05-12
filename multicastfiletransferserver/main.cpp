@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
     }
     else // project
     {
-        server.sourcePath = "./ab.deb";
+        server.sourcePath = "./aaa";
         server.allowedClients
                 << "0.0.0.0";
     }

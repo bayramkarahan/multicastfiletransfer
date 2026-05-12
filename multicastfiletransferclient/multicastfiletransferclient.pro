@@ -13,11 +13,13 @@ CONFIG += c++17
 
 SOURCES += \
     main.cpp \
-    multicastfileclient.cpp
+    multicastfileclient.cpp \
+    userprivilegehelper.cpp
 
 HEADERS += \
     multicastfileclient.h \
-    protocol.h
+    protocol.h \
+    userprivilegehelper.h
 
 
 

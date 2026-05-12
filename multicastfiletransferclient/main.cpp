@@ -7,14 +7,25 @@ int main(int argc, char *argv[])
     QCoreApplication a(argc, argv);
      MulticastClient client;
 
+    UserPrivilegeHelper helper;
+    SessionInfo info = helper.getActiveSessionInfo();
+    if (info.valid) {
+        qDebug() << "Kullanıcı:" << info.username;
+        qDebug() << "UID/GID:" << info.uid << "/" << info.gid;
+        qDebug() << "Home:" << info.home;
+        qDebug() << "Display:" << info.display;
+        qDebug() << "Type:" << info.type;
+        qDebug() << "Service:" << info.service;
+    }
+
      QString user = client.getActiveUser();
-     qDebug() << "Active user:" << user;
+     qDebug() << "Active user ext:" << user;
      QString home="/home/"+user+"/";
 
    QString desktop = client.getDesktopPathFromHome(home);
 
-   qDebug() << "home"<<home;
-    qDebug() << "desktop"<<desktop;
+   qDebug() << "home ext"<<home;
+    qDebug() << "desktop ext"<<desktop;
     // CLIENT için ayrı program olarak çalıştırılacak
 
     // MulticastClient client;
@@ -25,6 +36,8 @@ int main(int argc, char *argv[])
      QObject::connect(&client, &MulticastClient::fileReceived,
                       [&client](QString tmpPath, QString destPath, QString name, QString id, TransferType type,bool overWrite)
                       {
+                          UserPrivilegeHelper helper;
+                          SessionInfo info = helper.getActiveSessionInfo();
 
                           QString customPath=destPath;
                           QString targetRoot = client.resolveTargetPath(type, customPath);
@@ -51,7 +64,7 @@ int main(int argc, char *argv[])
                                      QFileInfo fi(finalTargetPath);
                                      QDir().mkpath(fi.path());
                                      client.copyFile(fullSourcePath, fi.path(), overWrite);
-                                     //::chown(fi.filePath().toUtf8().constData(), info.uid, info.gid);
+                                     ::chown(fi.filePath().toUtf8().constData(), info.uid, info.gid);
                                      ::chmod(fi.filePath().toUtf8().constData(), 0644);
                                      break;
                                  }
@@ -74,7 +87,7 @@ int main(int argc, char *argv[])
                                      QString filePath = fullSourcePath;
                                      QFile::setPermissions(filePath,
                                          QFileDevice::ExeUser | QFileDevice::ReadUser);
-                                     //::chown(filePath.toUtf8().constData(), info.uid, info.gid);
+                                     ::chown(filePath.toUtf8().constData(), info.uid, info.gid);
                                      client.scriptInstallStart();
                                      QProcess p;
                                      p.start("/bin/bash", QStringList() << filePath);

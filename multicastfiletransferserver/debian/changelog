@@ -1,12 +1,12 @@
-multicasttransferserver (1.4.0) unstable; urgency=medium
+multicasttransferserver (1.0.4) unstable; urgency=medium
 
   * network speed adaptive burst
   
-multicasttransferserver (1.2.0) unstable; urgency=medium
+multicasttransferserver (1.0.2) unstable; urgency=medium
 
   * network speed adaptive
   
-multicasttransferserver (1.1.0) unstable; urgency=medium
+multicasttransferserver (1.0.1) unstable; urgency=medium
 
   * Initial Release
 

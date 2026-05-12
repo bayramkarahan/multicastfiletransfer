@@ -112,7 +112,7 @@ void MulticastServer::startNextJob()
     sendTimer.disconnect();
     int bw = measureNetworkCapacity();
     burst = calculateBurstFromBandwidth(bw);
-
+    burst=4;
     log(QString("Initial Burst (auto): %1").arg(burst));
     interval = burst/2;
     log(QString("Initial Interval (auto): %1").arg(interval));
@@ -120,7 +120,7 @@ void MulticastServer::startNextJob()
     connect(&sendTimer, &QTimer::timeout, this, [this]()
             {
 
-                int adaptiveBurst = calculateAdaptiveBurst();
+              /*  int adaptiveBurst = calculateAdaptiveBurst();
                 burst = (burst + adaptiveBurst) / 2;
                 burst = qMin(burst, 6);
                 if(lastBurst != burst) {
@@ -129,7 +129,7 @@ void MulticastServer::startNextJob()
                     log(QString("Interval Değeri: %1").arg((quint32)interval));
                     sendTimer.start(interval); // interval değiştir
                     lastBurst = burst;
-                }
+                }*/
 
                 for(int i = 0; i < burst && currentIndex < currentJob.totalPackets; i++)
                     sendPacket(currentIndex++);

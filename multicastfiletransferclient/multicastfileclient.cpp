@@ -343,11 +343,23 @@ void MulticastClient::sendProgress(int percent)
 
 QString MulticastClient::resolveTargetPath(TransferType type, const QString& customPath)
 {
+    UserPrivilegeHelper helper;
+    SessionInfo info = helper.getActiveSessionInfo();
 
-    QString user = getActiveUser();
-    qDebug() << "Active user:" << user;
-    QString home="/home/"+user+"/";
-  QString desktop = getDesktopPathFromHome(home);
+    /* if (info.valid) {
+         qDebug() << "Kullanıcı:" << info.username;
+         qDebug() << "UID/GID:" << info.uid << "/" << info.gid;
+         qDebug() << "Home:" << info.home;
+         qDebug() << "Display:" << info.display;
+         qDebug() << "Type:" << info.type;
+         qDebug() << "Service:" << info.service;
+     }*/
+
+    //QString user = getActiveUser();
+    //qDebug() << "Active user:" << user;
+    //QString home="/home/"+user+"/";
+    QString home = info.home;
+    QString desktop = getDesktopPathFromHome(home);
 
     switch(type)
     {

@@ -14,6 +14,7 @@
 #include<QProcess>
 #include <unistd.h>
 #include <sys/stat.h>
+#include<userprivilegehelper.h>
 
 #define MULTICAST_IP "239.255.7.1"
 #define PORT 45454
