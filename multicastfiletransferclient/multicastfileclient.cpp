@@ -35,7 +35,8 @@ QString MulticastClient::getLocalIp()
 void MulticastClient::start()
 {
     log("CLIENT START");
-
+    socket.setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption,
+                           8*1024*1024);
     socket.setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 64*1024*1024);
 
     socket.bind(QHostAddress::AnyIPv4, PORT, QUdpSocket::ShareAddress);

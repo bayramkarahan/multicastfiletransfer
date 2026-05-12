@@ -19,7 +19,7 @@ void MulticastServer::start()
     delayUs = detectDefaultDelay();
     log(QString("Initial delay: %1 us").arg(delayUs));
 
-    socket.setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 32*1024*1024);
+    socket.setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 8*1024*1024);
     socket.setSocketOption(QAbstractSocket::MulticastTtlOption, 4);
     scanPath(sourcePath);
 
@@ -111,25 +111,23 @@ void MulticastServer::startNextJob()
     sendTimer.stop();
     sendTimer.disconnect();
     int bw = measureNetworkCapacity();
-    burst = calculateBurstFromBandwidth(bw);
-    burst=3;
-    log(QString("Initial Burst (auto): %1").arg(burst));
-    interval = burst/2;
-    interval=3;
-    log(QString("Initial Interval (auto): %1").arg(interval));
+    //burst = calculateBurstFromBandwidth(bw);
+    burst=5;
+    //interval = burst/2;
+    interval=5;
+    log(QString("Adaptive Burst: %1 Interval: %2").arg(burst).arg(interval));
 
     connect(&sendTimer, &QTimer::timeout, this, [this]()
             {
 
-              /*  int adaptiveBurst = calculateAdaptiveBurst();
-                burst = (burst + adaptiveBurst) / 2;
-                burst = qMin(burst, 6);
-                if(lastBurst != burst) {
-                    log(QString("Brust Değeri: %1").arg((quint32)burst));
-                    interval=burst/2;
-                    log(QString("Interval Değeri: %1").arg((quint32)interval));
+                /*int adaptiveBurst = calculateAdaptiveBurst();
+                if(adaptiveBurst != burst) {
+                    burst = adaptiveBurst;
+                    interval=burst/12;
+                    interval = qBound(2, interval, 10);
+                    log(QString("Adaptive Burst: %1 Interval: %2").arg(burst).arg(interval));
                     sendTimer.start(interval); // interval değiştir
-                    lastBurst = burst;
+
                 }*/
 
                 for(int i = 0; i < burst && currentIndex < currentJob.totalPackets; i++)
@@ -348,6 +346,8 @@ void MulticastServer::processPendingDatagrams()
         {
             sendPacket(idx);
             QThread::usleep(100);
+            //QThread::msleep(2);
+
         }
 
         sendEnd();
@@ -446,29 +446,30 @@ int MulticastServer::calculateBurst(int delayUs)
 
 int MulticastServer::calculateAdaptiveBurst()
 {
-    int base = calculateBurst(delayUs);
-
     int total = allClients.size();
     int done  = completedClients.size();
 
     if(total == 0)
-        return base;
+        return burst;
 
     double ratio = (double)done / total;
 
-    // adaptasyon
-    if(ratio < 0.5)
-        base -= 2;
-    else if(ratio < 0.8)
-        base -= 1;
+    int newBurst = burst;
+
+    if(ratio < 0.3)
+        newBurst -= 8;
+    else if(ratio < 0.6)
+        newBurst -= 4;
+    else if(ratio < 0.9)
+        newBurst += 2;
     else
-        base += 1;
+        newBurst += 4;
 
-    if(base < 2) base = 2;
-    if(base > 10) base = 10;
+    newBurst = qBound(16, newBurst, 64);
 
-    return base;
+    return newBurst;
 }
+
 
 int MulticastServer::measureNetworkCapacity()
 {

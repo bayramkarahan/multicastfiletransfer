@@ -1,0 +1,12 @@
+sudo nano /etc/sysctl.conf
+
+ekle:
+
+net.core.rmem_max=33554432
+net.core.rmem_default=16777216
+net.core.wmem_max=33554432
+net.core.wmem_default=16777216
+
+sonra:
+
+sudo sysctl -p

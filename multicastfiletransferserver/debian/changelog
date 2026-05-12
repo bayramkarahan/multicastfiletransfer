@@ -1,4 +1,4 @@
-multicasttransferserver (1.0.5) unstable; urgency=medium
+multicasttransferserver (1.0.6) unstable; urgency=medium
 
   * network speed adaptive burst fix number
   

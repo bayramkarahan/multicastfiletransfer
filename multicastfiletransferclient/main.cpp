@@ -6,6 +6,8 @@ int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
      MulticastClient client;
+     //sudo sysctl -w net.core.rmem_max=33554432
+     //sudo sysctl -w net.core.rmem_default=16777216
 
     UserPrivilegeHelper helper;
     SessionInfo info = helper.getActiveSessionInfo();
