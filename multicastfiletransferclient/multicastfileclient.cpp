@@ -67,16 +67,18 @@ void MulticastClient::processDatagram(const QByteArray &datagram, const QHostAdd
     metaStream >> type;
 
     // HELLO
-    else if(header.type == HELLO)
+    if(type == HELLO)
     {
-        QUdpSocket s;
-        QByteArray msg;
-        QDataStream stream(&msg, QIODevice::WriteOnly);
+        PacketHeader header;
+        memcpy(&header, datagram.data(), sizeof(header));
 
-        stream << (quint32)HELLO_REPLY;
-        s.writeDatagram(msg, serverAddress, NACK_PORT);
-        qDebug() << "HELLO_REPLY gönderildi";
-    }
+        qint64 sentTime;
+        metaStream >> sentTime;
+
+        log("Hello Geldi.");
+        qDebug()<<"Gelen Hello Bilgisi"<<sentTime;
+        helloReply(sentTime);
+     }
 
     // 🔥 META
 
@@ -267,6 +269,17 @@ void MulticastClient::sendDone()
     stream << (quint32)DONE;
     stream << currentTransferId;
 
+    s.writeDatagram(msg, serverAddress, NACK_PORT);
+}
+
+void MulticastClient::helloReply(qint64 timestamp)
+{
+    log("HELLO_REPLY gönderildi");
+    QUdpSocket s;
+    QByteArray msg;
+    QDataStream stream(&msg, QIODevice::WriteOnly);
+    stream << (quint32)HELLO_REPLY;
+    stream << (quint64)timestamp;
     s.writeDatagram(msg, serverAddress, NACK_PORT);
 }
 

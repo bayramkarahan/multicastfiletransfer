@@ -63,6 +63,7 @@ public:
     void debInstallDone(QString status);
     void scriptInstallStart();
     void scriptInstallDone(QString status);
+    void helloReply(qint64 timestamp);
     QString getActiveUser();
 signals:
     void fileReceived(QString tmpPath,
@@ -80,6 +81,7 @@ private slots:
     void saveFile();
     void resetState();
     void sendDone();
+
 
     QString generateFileName(const QString& dir, const QString& baseName);
     void sendProgress(int percent);

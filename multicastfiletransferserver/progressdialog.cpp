@@ -126,6 +126,25 @@ void ProgressDialog::updateProgress(const QString &ip, int percent)
     // =========================
 }
 
+
+void ProgressDialog::allProgressStart()
+{
+        for(auto it = progressBars.begin();
+            it != progressBars.end();
+            ++it)
+        {
+            it.value()->setValue(0);
+        }
+
+        for(auto it = clientPercents.begin();
+            it != clientPercents.end();
+            ++it)
+        {
+            it.value() = 0;
+        }
+}
+
+
 void ProgressDialog::updateTotalProgressBars(double percent)
 {
     int sum = 0;

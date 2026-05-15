@@ -4,6 +4,7 @@
 MulticastServer::MulticastServer(QObject *parent)
     : QObject(parent)
 {
+
     transferId = QDateTime::currentMSecsSinceEpoch();
 
     doneTimer = new QTimer(this);
@@ -54,9 +55,6 @@ void MulticastServer::start()
 {
     log("SERVER START");
 
-    delayUs = detectDefaultDelay();
-    log(QString("Initial delay: %1 us").arg(delayUs));
-
     socket.setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 8*1024*1024);
     socket.setSocketOption(QAbstractSocket::MulticastTtlOption, 4);
     scanPath(sourcePath);
@@ -75,9 +73,8 @@ void MulticastServer::start()
             &MulticastServer::processPendingDatagrams);
 
     sendHello();
-    //return;
 
-    //startNextJob();
+
 }
 
 void MulticastServer::scanPath(const QString &path)
@@ -139,7 +136,7 @@ void MulticastServer::startNextJob()
 
     currentJob = jobQueue.dequeue();
     currentIndex = 0;
-
+    emit clientAllProgressStart();
     completedClients.clear();
     allClients.clear();
 
@@ -152,25 +149,13 @@ void MulticastServer::startNextJob()
 
     sendTimer.stop();
     sendTimer.disconnect();
-    int bw = measureNetworkCapacity();
-    //burst = calculateBurstFromBandwidth(bw);
-    burst=5;
+    ///burst=5;
     //interval = burst/2;
-    interval=2;
-    log(QString("Adaptive Burst: %1 Interval: %2").arg(burst).arg(interval));
+    ///interval=2;
+    //log(QString("Adaptive Burst: %1 Interval: %2").arg(burst).arg(interval));
 
     connect(&sendTimer, &QTimer::timeout, this, [this]()
             {
-
-                /*int adaptiveBurst = calculateAdaptiveBurst();
-                if(adaptiveBurst != burst) {
-                    burst = adaptiveBurst;
-                    interval=burst/12;
-                    interval = qBound(2, interval, 10);
-                    log(QString("Adaptive Burst: %1 Interval: %2").arg(burst).arg(interval));
-                    sendTimer.start(interval); // interval değiştir
-
-                }*/
 
                 for(int i = 0; i < burst && currentIndex < currentJob.totalPackets; i++)
                     sendPacket(currentIndex++);
@@ -180,9 +165,7 @@ void MulticastServer::startNextJob()
                     sendTimer.stop();
                     sendEnd();
                     log("END sent → waiting DONE...");
-
-                    completedClients.clear();
-                    doneTimer->start(500);
+                    doneTimer->start(startNextJobTimeout);
                 }
             });
 
@@ -306,17 +289,6 @@ void MulticastServer::processPendingDatagrams()
                         currentJob.relativePath,
                         QString::number(transferId)
                     );
-
-                    /*if(completedClients.size() >= totalClient)
-                    {
-                        doneTimer->stop();
-
-                        qDebug() << "Tüm clientlar tamamladı.";
-
-                        completedClients.clear();
-
-                        startNextJob();
-                    }*/
                 }
 
             }
@@ -391,75 +363,154 @@ void MulticastServer::processPendingDatagrams()
         }
         else if(type == HELLO_REPLY)
         {
-            QString user;
-            s >> user;
-
+            qint64 sentTime;
+            s >> sentTime;
             QString ip = sender.toString();
-
-            if(!helloClients.contains(ip))
-            {
-                helloClients.insert(ip);
-
-                qDebug() << "Client bulundu:"
-                         << ip;
-                        // << user;
-            }
+            qint64 now = QDateTime::currentMSecsSinceEpoch();
+            qint64 rtt = now - sentTime;
+            helloClientRttMap[ip] = rtt;
+            //qDebug() << "RTT:" << ip << rtt << "ms";
         }
     }
 
     if(!missingAll.isEmpty())
     {
         log(QString("Resend %1 packets").arg(missingAll.size()));
-
         for(auto idx: missingAll)
         {
             sendPacket(idx);
             QThread::usleep(100);
             //QThread::msleep(2);
-
         }
-
         sendEnd();
     }
 }
 
-int MulticastServer::detectDefaultDelay()
+void MulticastServer::sendHello()
 {
-    QString type = detectNetworkType();
+    QByteArray datagram;
 
-    if(type == "wifi")
-    {
-        log("Network: WIFI");
-        return 250;
-    }
-    else if(type == "ethernet")
-    {
-        log("Network: ETHERNET");
-        return 80;
-    }
+    QDataStream s(&datagram, QIODevice::WriteOnly);
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+    s << (quint32)HELLO;
+    s << (quint64)now;
+    socket.writeDatagram(
+        datagram,
+        QHostAddress(MULTICAST_IP),PORT);
 
-    log("Network: UNKNOWN");
-    return 150;
+    log("HELLO Gönderildi");
+
+
+    QTimer::singleShot(500, this, [this]()
+    {
+
+        log("HELLO_REPLY Geldi.");
+        calculateRttValues();
+        startNextJob();
+    });
 }
 
-QString MulticastServer::getDefaultInterface()
+void MulticastServer::calculateRttValues()
 {
-    QFile f("/proc/net/route");
-    if(!f.open(QIODevice::ReadOnly))
-        return "";
+    qint64 total = 0;
+    qint64 maxRtt = 0;
 
-    while(!f.atEnd())
+    // RTT hesapla
+    for(qint64 rtt : helloClientRttMap)
     {
-        QByteArray line = f.readLine();
-        QList<QByteArray> parts = line.split('\t');
-
-        if(parts.size() > 1 && parts[1] == "00000000")
-        {
-            return parts[0];
-        }
+        total += rtt;
+        maxRtt = qMax(maxRtt, rtt);
     }
 
-    return "";
+    // Client yoksa güvenli mod
+    if(helloClientRttMap.isEmpty())
+    {
+        burst = 2;
+        interval = 5;
+        startNextJobTimeout = 2000;
+
+        qDebug() << "No HELLO_REPLY received";
+        qDebug() << "BURST:" << burst;
+        qDebug() << "INTERVAL:" << interval;
+
+        return;
+    }
+
+    // Ortalama RTT
+    qint64 avgRtt =
+        total / helloClientRttMap.size();
+
+    // Dengeli RTT
+    qint64 effectiveRtt =
+        (avgRtt + maxRtt) / 2;
+
+    qDebug() << "AVG RTT:" << avgRtt;
+    qDebug() << "MAX RTT:" << maxRtt;
+    qDebug() << "EFFECTIVE RTT:" << effectiveRtt;
+
+    // RTT bazlı başlangıç ayarı
+    if(effectiveRtt <= 2)
+    {
+        burst = 12;
+        interval = 1;
+    }
+    else if(effectiveRtt <= 4)
+    {
+        burst = 10;
+        interval = 1;
+    }
+    else if(effectiveRtt <= 6)
+    {
+        burst = 8;
+        interval = 2;
+    }
+    else if(effectiveRtt <= 10)
+    {
+        burst = 6;
+        interval = 3;
+    }
+    else if(effectiveRtt <= 15)
+    {
+        burst = 4;
+        interval = 4;
+    }
+    else
+    {
+        burst = 2;
+        interval = 5;
+    }
+
+    // Ağ tipi tespiti
+    networkType = detectNetworkType();
+
+    // WiFi düzeltmesi
+    if(networkType == "wifi")
+    {
+        // WiFi multicast daha hassas
+        burst -= 2;
+
+        // Çok agresif olmasın
+        interval += 1;
+
+        startNextJobTimeout = 1000;
+    }
+    else if(networkType == "ethernet")
+    {
+        startNextJobTimeout = 100;
+    }
+    else
+    {
+        startNextJobTimeout = 500;
+    }
+
+    // Güvenlik sınırları
+    burst = qBound(2, burst, 14);
+    interval = qBound(1, interval, 5);
+
+    qDebug() << "Network Type:" << networkType;
+    qDebug() << "startNextJobTimeout:" << startNextJobTimeout;
+    qDebug() << "BURST:" << burst;
+    qDebug() << "INTERVAL:" << interval;
 }
 
 QString MulticastServer::detectNetworkType()
@@ -502,99 +553,4 @@ QString MulticastServer::detectNetworkType()
     }
 
     return "unknown";
-}
-
-int MulticastServer::calculateBurst(int delayUs)
-{
-    if(delayUs <= 50)   return 8;
-    if(delayUs <= 100)  return 6;
-    if(delayUs <= 200)  return 5;
-    return 3;
-}
-
-
-int MulticastServer::calculateAdaptiveBurst()
-{
-    int total = allClients.size();
-    int done  = completedClients.size();
-
-    if(total == 0)
-        return burst;
-
-    double ratio = (double)done / total;
-
-    int newBurst = burst;
-
-    if(ratio < 0.3)
-        newBurst -= 8;
-    else if(ratio < 0.6)
-        newBurst -= 4;
-    else if(ratio < 0.9)
-        newBurst += 2;
-    else
-        newBurst += 4;
-
-    newBurst = qBound(16, newBurst, 64);
-
-    return newBurst;
-}
-
-
-int MulticastServer::measureNetworkCapacity()
-{
-    const int testDurationMs = 500;
-    const int packetSize = 1200; // gerçek paketine yakın olsun
-
-    QByteArray dummy(packetSize, 'A');
-
-    QElapsedTimer timer;
-    timer.start();
-
-    int sentBytes = 0;
-
-    while(timer.elapsed() < testDurationMs)
-    {
-        socket.writeDatagram(dummy, QHostAddress(MULTICAST_IP), PORT);
-        sentBytes += packetSize;
-    }
-
-    // bytes/sec
-    double bytesPerSec = (sentBytes * 1000.0) / testDurationMs;
-
-    log(QString("Measured throughput: %1 KB/s").arg(bytesPerSec / 1024.0));
-
-    return static_cast<int>(bytesPerSec);
-}
-
-int MulticastServer::calculateBurstFromBandwidth(int bytesPerSec)
-{
-    // saniyede kaç paket?
-    int packetsPerSec = bytesPerSec / 1200;
-
-    // timer 2ms → saniyede 500 tick
-    int ticksPerSec = 1000 / 2;
-
-    int burst = packetsPerSec / ticksPerSec;
-
-    if(burst < 2) burst = 2;
-    if(burst > 10) burst = 10;
-
-    return burst;
-}
-
-
-void MulticastServer::sendHello()
-{
-    QByteArray datagram;
-
-    QDataStream s(&datagram, QIODevice::WriteOnly);
-
-    s << (quint32)HELLO;
-    //s << QDateTime::currentMSecsSinceEpoch();
-
-    socket.writeDatagram(
-        datagram,
-        QHostAddress(MULTICAST_IP),PORT);
-
-    qDebug() << "HELLO gönderildi";
 }

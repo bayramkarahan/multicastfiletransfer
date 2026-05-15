@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
     }
     else // project
     {
-        server.sourcePath = "./aaa";
+        server.sourcePath = "./ab4.deb";
         server.allowedClients
                 << "0.0.0.0";
     }
@@ -172,6 +172,12 @@ int main(int argc, char *argv[])
         qDebug() << "Client tamamladı:" << sender;
         dlg->markDone(sender);
     });
+
+    QObject::connect(&server,&MulticastServer::clientAllProgressStart,
+                     [&,&server]()
+    {
+        dlg->allProgressStart();
+     });
 
     QObject::connect(&server, &MulticastServer::allTransferFinished,
                      [&]()

@@ -79,6 +79,7 @@ public:
     FileJob currentJob;
 
 signals:
+    void clientAllProgressStart();
     void clientProgressChanged(QString client, int percent);
     void clientDebInstallStart(QString client);
     void clientDebInstallDone(QString client, QString status);
@@ -91,14 +92,8 @@ signals:
                              QString id);
 private slots:
     void processPendingDatagrams();
-    int detectDefaultDelay();
-    QString getDefaultInterface();
+    void calculateRttValues();
     QString detectNetworkType();
-    int calculateBurst(int delayUs);
-    int calculateAdaptiveBurst();
-    int calculateBurstFromBandwidth(int bytesPerSec);
-    int measureNetworkCapacity();
-
 private:
     void log(const QString &msg);
     void sendPacket(int index);
@@ -123,9 +118,12 @@ private:
     int interval=2;
 
     QSet<QString> allClients;
-    QSet<QString>  helloClients;
+
     QSet<QString> completedClients;
     QTimer *doneTimer;
 
     QMap<QString,int> clientProgress;
+    QMap<QString, qint64> helloClientRttMap;
+    QString networkType="";
+    int startNextJobTimeout=200;
 };
