@@ -17,6 +17,8 @@ public:
     explicit ProgressDialog(const QStringList &clients, QWidget *parent = nullptr);
     int yukseklik=150;
     void updateProgress(const QString &ip, int percent);
+    void updateTotalProgressBars(double percent);
+
     void markDone(const QString &ip);
     void markDebInstallStart(const QString &ip);
     void markDebInstallDone(const QString &ip,const QString &status);

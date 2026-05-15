@@ -5,6 +5,43 @@ MulticastServer::MulticastServer(QObject *parent)
     : QObject(parent)
 {
     transferId = QDateTime::currentMSecsSinceEpoch();
+
+    doneTimer = new QTimer(this);
+
+    doneTimer->setSingleShot(true);
+
+    connect(doneTimer, &QTimer::timeout, this, [this]()
+            {
+                int totalClient;
+
+                if(allClients.contains("0.0.0.0"))
+                    totalClient = allClients.size() - 1;
+                else
+                    totalClient = allClients.size();
+
+                qDebug() << "Beklenen client:" << totalClient;
+                qDebug() << "DONE gelen:" << completedClients.size();
+
+                QSet<QString> missing;
+
+                for(const QString &ip : allClients)
+                {
+                    if(ip == "0.0.0.0")
+                        continue;
+
+                    if(!completedClients.contains(ip))
+                        missing.insert(ip);
+                }
+
+                if(!missing.isEmpty())
+                {
+                    qDebug() << "Eksik clientlar:" << missing;
+                }
+
+                qDebug() << "Yeni işe geçiliyor...";
+                startNextJob();
+            });
+
 }
 
 void MulticastServer::log(const QString &msg)
@@ -16,6 +53,7 @@ void MulticastServer::log(const QString &msg)
 void MulticastServer::start()
 {
     log("SERVER START");
+
     delayUs = detectDefaultDelay();
     log(QString("Initial delay: %1 us").arg(delayUs));
 
@@ -36,7 +74,10 @@ void MulticastServer::start()
             this,
             &MulticastServer::processPendingDatagrams);
 
-    startNextJob();
+    sendHello();
+    //return;
+
+    //startNextJob();
 }
 
 void MulticastServer::scanPath(const QString &path)
@@ -83,6 +124,8 @@ void MulticastServer::scanPath(const QString &path)
             jobQueue.enqueue(job);
         }
     }
+    totalJobCount=jobQueue.size();
+
 }
 
 void MulticastServer::startNextJob()
@@ -90,8 +133,7 @@ void MulticastServer::startNextJob()
     if(jobQueue.isEmpty())
     {
         log("ALL FILES SENT");
-        //if(allClients.size()==completedClients.size()){
-        allTransferFinished();//}
+
         return;
     }
 
@@ -106,7 +148,7 @@ void MulticastServer::startNextJob()
         allClients = QSet<QString>(allowedClients.begin(), allowedClients.end());
 
     sendMeta();
-    //QThread::msleep(100);
+    QThread::msleep(100);
 
     sendTimer.stop();
     sendTimer.disconnect();
@@ -114,7 +156,7 @@ void MulticastServer::startNextJob()
     //burst = calculateBurstFromBandwidth(bw);
     burst=5;
     //interval = burst/2;
-    interval=5;
+    interval=2;
     log(QString("Adaptive Burst: %1 Interval: %2").arg(burst).arg(interval));
 
     connect(&sendTimer, &QTimer::timeout, this, [this]()
@@ -138,6 +180,9 @@ void MulticastServer::startNextJob()
                     sendTimer.stop();
                     sendEnd();
                     log("END sent → waiting DONE...");
+
+                    completedClients.clear();
+                    doneTimer->start(500);
                 }
             });
 
@@ -198,6 +243,8 @@ void MulticastServer::sendEnd()
     p.append((char*)&h,sizeof(h));
 
     socket.writeDatagram(p,QHostAddress(MULTICAST_IP),PORT);
+
+
 }
 
 void MulticastServer::processPendingDatagrams()
@@ -240,7 +287,7 @@ void MulticastServer::processPendingDatagrams()
                 QString ip = sender.toString();
 
                 // 🔥 CLIENT'I HER ZAMAN EKLE
-                allClients.insert(ip);
+
 
                 if(!completedClients.contains(ip))
                 {
@@ -260,12 +307,18 @@ void MulticastServer::processPendingDatagrams()
                         QString::number(transferId)
                     );
 
-                    // 🔥 HER ZAMAN NEXT (senin kullanım için)
-                    QTimer::singleShot(50, this, [this]()
+                    /*if(completedClients.size() >= totalClient)
                     {
+                        doneTimer->stop();
+
+                        qDebug() << "Tüm clientlar tamamladı.";
+
+                        completedClients.clear();
+
                         startNextJob();
-                    });
+                    }*/
                 }
+
             }
         }
 
@@ -280,7 +333,7 @@ void MulticastServer::processPendingDatagrams()
             {
                 QString ip = sender.toString();
                 clientProgress[ip] = percent;
-
+                allClients.insert(ip);
                 emit clientProgressChanged(ip, percent);
             }
         }
@@ -334,6 +387,22 @@ void MulticastServer::processPendingDatagrams()
             {
                 QString ip = sender.toString();
                 emit clientScriptInstallDone(ip, status);
+            }
+        }
+        else if(type == HELLO_REPLY)
+        {
+            QString user;
+            s >> user;
+
+            QString ip = sender.toString();
+
+            if(!helloClients.contains(ip))
+            {
+                helloClients.insert(ip);
+
+                qDebug() << "Client bulundu:"
+                         << ip;
+                        // << user;
             }
         }
     }
@@ -513,3 +582,19 @@ int MulticastServer::calculateBurstFromBandwidth(int bytesPerSec)
     return burst;
 }
 
+
+void MulticastServer::sendHello()
+{
+    QByteArray datagram;
+
+    QDataStream s(&datagram, QIODevice::WriteOnly);
+
+    s << (quint32)HELLO;
+    //s << QDateTime::currentMSecsSinceEpoch();
+
+    socket.writeDatagram(
+        datagram,
+        QHostAddress(MULTICAST_IP),PORT);
+
+    qDebug() << "HELLO gönderildi";
+}

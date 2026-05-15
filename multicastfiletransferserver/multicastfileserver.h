@@ -30,6 +30,8 @@
 #define DEB_DONE          7
 #define SCRIPT_START      8
 #define SCRIPT_DONE       9
+#define HELLO 10
+#define HELLO_REPLY 11
 
 enum class TransferType {
     FileCopyDesktop,
@@ -70,7 +72,11 @@ public:
     bool transferOverwrite;
     QStringList allowedClients;
 
+
     void start();
+    QQueue<FileJob> jobQueue;
+    int totalJobCount = 0;
+    FileJob currentJob;
 
 signals:
     void clientProgressChanged(QString client, int percent);
@@ -98,14 +104,15 @@ private:
     void sendPacket(int index);
     void sendMeta();
     void sendEnd();
+    void sendHello();
     void startNextJob();
     void scanPath(const QString &path);
 
     QUdpSocket socket;
     QUdpSocket nackSocket;
 
-    QQueue<FileJob> jobQueue;
-    FileJob currentJob;
+
+
 
     int currentIndex = 0;
     quint64 transferId;
@@ -116,7 +123,9 @@ private:
     int interval=2;
 
     QSet<QString> allClients;
+    QSet<QString>  helloClients;
     QSet<QString> completedClients;
+    QTimer *doneTimer;
 
     QMap<QString,int> clientProgress;
 };

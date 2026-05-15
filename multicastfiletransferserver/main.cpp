@@ -184,9 +184,14 @@ int main(int argc, char *argv[])
     });
 
     QObject::connect(&server,&MulticastServer::clientProgressChanged,
-                     [&](QString ip, int percent)
+                     [&,&server](QString ip, int percent)
     {
         dlg->updateProgress(ip, percent);
+
+        int processed = server.totalJobCount - server.jobQueue.size();
+        double totalpercent =(double(processed) / server.totalJobCount) * 100.0;
+        dlg->updateTotalProgressBars(totalpercent);
+
     });
 
     QObject::connect(&server,&MulticastServer::clientDebInstallStart,

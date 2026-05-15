@@ -30,6 +30,8 @@
 #define DEB_DONE          7
 #define SCRIPT_START      8
 #define SCRIPT_DONE       9
+#define HELLO 10
+#define HELLO_REPLY 11
 
 enum class TransferType {
     FileCopyDesktop,

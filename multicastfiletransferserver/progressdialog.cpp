@@ -124,20 +124,24 @@ void ProgressDialog::updateProgress(const QString &ip, int percent)
     // =========================
     // TOTAL AVERAGE
     // =========================
+}
+
+void ProgressDialog::updateTotalProgressBars(double percent)
+{
     int sum = 0;
     for(auto v : clientPercents)
         sum += v;
 
     totalBar->setValue(clientPercents.isEmpty() ? 0 : sum / clientPercents.size());
+     totalBar->setValue(percent);
 }
-
 
 void ProgressDialog::markDone(const QString &ip)
 {
     if(progressBars.contains(ip))
     {
         progressBars[ip]->setValue(100);
-        progressBars[ip]->setFormat("DONE");
+        //progressBars[ip]->setFormat("DONE");
 
         progressBars[ip]->setStyleSheet(
             "QProgressBar {"
@@ -149,13 +153,13 @@ void ProgressDialog::markDone(const QString &ip)
             "QProgressBar::chunk { background-color: #2196f3; }"
         );
 
-        clientPercents[ip] = 100;
-
+        //clientPercents[ip] = 100;
+        clientPercents[ip] =0;
         int sum = 0;
         for(auto v : clientPercents)
             sum += v;
 
-        totalBar->setValue(clientPercents.isEmpty() ? 0 : sum / clientPercents.size());
+      ///  totalBar->setValue(clientPercents.isEmpty() ? 0 : sum / clientPercents.size());
     }
 }
 

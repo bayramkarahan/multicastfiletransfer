@@ -66,7 +66,20 @@ void MulticastClient::processDatagram(const QByteArray &datagram, const QHostAdd
     quint32 type;
     metaStream >> type;
 
+    // HELLO
+    else if(header.type == HELLO)
+    {
+        QUdpSocket s;
+        QByteArray msg;
+        QDataStream stream(&msg, QIODevice::WriteOnly);
+
+        stream << (quint32)HELLO_REPLY;
+        s.writeDatagram(msg, serverAddress, NACK_PORT);
+        qDebug() << "HELLO_REPLY gönderildi";
+    }
+
     // 🔥 META
+
     if(type == META)
     {
         emit transferProgress(0);
@@ -186,7 +199,7 @@ void MulticastClient::sendNack(const QVector<quint32>& missing, const QHostAddre
 void MulticastClient::saveFile()
 {
     QString fullPath = tmpTargetPath + "/" + fileName;
-
+//destTargetPath
     QFileInfo fi(fullPath);
 
     // 🔥 DİZİN OLUŞTUR

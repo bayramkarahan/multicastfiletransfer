@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
      QObject::connect(&client, &MulticastClient::fileReceived,
                       [&client](QString tmpPath, QString destPath, QString name, QString id, TransferType type,bool overWrite)
                       {
-                          UserPrivilegeHelper helper;
+                          /*UserPrivilegeHelper helper;
                           SessionInfo info = helper.getActiveSessionInfo();
 
                           QString customPath=destPath;
@@ -74,13 +74,13 @@ int main(int argc, char *argv[])
                                 case TransferType::DebInstall:
                                  {
                                     client.debInstallStart();
-                                    /************************/
+
                                      QString filePath = fullSourcePath;
                                      QProcess p;
                                      p.start("dpkg", {"-i", filePath});
                                      p.waitForFinished();
                                      client.debInstallDone(p.exitCode() == 0 ? "0" : "1");
-                                     /************************/
+
                                      break;
                                  }
 
@@ -95,10 +95,9 @@ int main(int argc, char *argv[])
                                      p.start("/bin/bash", QStringList() << filePath);
                                      p.waitForFinished();
                                      client.scriptInstallDone(p.exitCode() == 0 ? "0" : "1");
-                                     /************************/
                                      break;
                                  }
-                             }
+                             }*/
 
      });
      QObject::connect(&client, &MulticastClient::transferProgress,
