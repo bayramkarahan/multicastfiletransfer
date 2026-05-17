@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
                      });
 
     QList<QHostAddress> selected;
-    selected << QHostAddress("192.168.1.100");
+    selected << QHostAddress("192.168.1.101");
     QHostAddress serverIp("192.168.1.102");
 
     server.sendFile("/home/etapadmin/ab.deb",

@@ -27,6 +27,12 @@ MulticastFileTransferServer::MulticastFileTransferServer(QObject *parent)
             this,&MulticastFileTransferServer::resendTimeout);
 }
 
+void MulticastFileTransferServer::log(const QString &msg)
+{
+    QString ts = QDateTime::currentDateTime().toString("HH:mm:ss.zzz");
+    qDebug() << ts << msg;
+}
+
 void MulticastFileTransferServer::sendFile(const QString &path,
                                             const QHostAddress &serverIp,
                                             const QList<QHostAddress> &targets,
@@ -47,7 +53,7 @@ void MulticastFileTransferServer::sendFile(const QString &path,
 
     fileId = QDateTime::currentSecsSinceEpoch();
     totalPackets = (fileData.size() / CHUNK) + 1;
-
+    log("Transfer başladı.");
     QFileInfo fi(path);
 
     sendMeta(fi.fileName(),
@@ -193,7 +199,7 @@ void MulticastFileTransferServer::processAck()
 
                 qDebug()<<"Transfer tamamlandı ->"
                          <<sender.toString();
-
+                    log("Transfer tamamlandı.");
                 emit clientFinished(sender,h.fileId);
             }
         }

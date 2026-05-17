@@ -4,6 +4,12 @@ MulticastClient::MulticastClient(QObject *parent)
     : QObject(parent), totalPackets(0), currentTransferId(0), allowed(true)
 {
     lastPercent = -1;
+    QFile file("/etc/hostname");
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        clientHostName = QString::fromUtf8(file.readAll()).trimmed();
+
+        file.close();
+    }
 }
 
 void MulticastClient::log(const QString &msg)
@@ -36,29 +42,15 @@ void MulticastClient::start()
 {
     log("CLIENT START");
     socket.setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption,
-                           8*1024*1024);
-    socket.setSocketOption(QAbstractSocket::ReceiveBufferSizeSocketOption, 64*1024*1024);
-
-    socket.bind(QHostAddress::AnyIPv4, PORT, QUdpSocket::ShareAddress);
+           32 * 1024 * 1024);
+    bool ok =
+    socket.bind(QHostAddress::AnyIPv4,PORT,QUdpSocket::ShareAddress);
+    qDebug() << "bind:" << ok;// << socket.errorString();
     socket.joinMulticastGroup(QHostAddress(MULTICAST_IP));
-
-    while(true)
-    {
-        socket.waitForReadyRead();
-
-        while(socket.hasPendingDatagrams())
-        {
-            QByteArray datagram;
-            datagram.resize(socket.pendingDatagramSize());
-
-            QHostAddress sender;
-            socket.readDatagram(datagram.data(), datagram.size(), &sender);
-
-            serverAddress = sender;
-            processDatagram(datagram, sender);
-        }
-    }
+    connect(&socket,&QUdpSocket::readyRead,this,
+    &MulticastClient::processPendingDatagrams,Qt::UniqueConnection);
 }
+
 
 void MulticastClient::processDatagram(const QByteArray &datagram, const QHostAddress &sender)
 {
@@ -79,6 +71,33 @@ void MulticastClient::processDatagram(const QByteArray &datagram, const QHostAdd
         qDebug()<<"Gelen Hello Bilgisi"<<sentTime;
         helloReply(sentTime);
      }
+    // HELLO
+    if(type == ALLFILESSENTDONE)
+    {
+        if(!sendAllFilesState)
+        {
+        PacketHeader header;
+        memcpy(&header, datagram.data(), sizeof(header));
+        log("ALLFILESSENTDONE Geldi.");
+        qDebug()<<"tmpSourcePath"<<tmpTargetPath;
+        qDebug()<<"destTargetPath"<<destTargetPath;
+        qDebug()<<"sourceBaseName"<<sourceBaseName;
+        qDebug()<<"sourceType"<<sourceType;
+        qDebug() << "transferType:" <<static_cast<int>(transferType);
+        qDebug() << "overwrite:" <<overwrite;
+
+
+        sendAllFilesState=true;
+        QTimer::singleShot(200, this, [this]()
+        {
+            qDebug()<<"DOSYA İLE İLGİLİ İŞLEMLER YAPILACAK.....";
+            sendAllFilesState=false;
+            copyPath(sourceBaseName,sourceType,transferType,tmpTargetPath,
+                     destTargetPath,overwrite);
+         });
+
+        }
+     }
 
     // 🔥 META
 
@@ -88,23 +107,27 @@ void MulticastClient::processDatagram(const QByteArray &datagram, const QHostAdd
         lastPercent = -1;
         receivedCount = 0;
         quint64 tid;
-        QString getFileName, getTempPath, getDestPath;
+        QString getFileName, getTempPath, getDestPath,sourceBaseName,sourceType;
 
         TransferType transferType;
         bool overwrite;
         quint32 total;
         QStringList list;
 
-        metaStream >> tid >> getFileName >> getTempPath >>getDestPath>> transferType >> overwrite >> total >> list;
+        metaStream >> tid >> getFileName
+                >> getTempPath >>getDestPath>> transferType
+                >> overwrite >> total >> list
+                >> sourceBaseName >> sourceType;
 
         currentTransferId = tid;
         fileName = getFileName;
         tmpTargetPath = getTempPath;
         destTargetPath=getDestPath;
         totalPackets = total;
-
         this->overwrite = overwrite;
         this->transferType = transferType;
+        this->sourceBaseName= sourceBaseName;
+        this->sourceType=sourceType;
 
         allowedClients = list;
 
@@ -348,7 +371,6 @@ void MulticastClient::resetState()
     totalPackets = 0;
     currentTransferId = 0;
     allowed = true;
-
     log("READY FOR NEXT FILE");
 }
 
@@ -363,6 +385,7 @@ void MulticastClient::sendProgress(int percent)
     stream << (quint32)PROGRESS;
     stream << currentTransferId;
     stream << percent;
+    stream << clientHostName;
 
     s.writeDatagram(msg, serverAddress, NACK_PORT);
 }
@@ -372,7 +395,8 @@ QString MulticastClient::resolveTargetPath(TransferType type, const QString& cus
 {
     UserPrivilegeHelper helper;
     SessionInfo info = helper.getActiveSessionInfo();
-
+    QString home = info.home;
+    QString desktop = getDesktopPathFromHome(home);
     /* if (info.valid) {
          qDebug() << "Kullanıcı:" << info.username;
          qDebug() << "UID/GID:" << info.uid << "/" << info.gid;
@@ -385,8 +409,7 @@ QString MulticastClient::resolveTargetPath(TransferType type, const QString& cus
     //QString user = getActiveUser();
     //qDebug() << "Active user:" << user;
     //QString home="/home/"+user+"/";
-    QString home = info.home;
-    QString desktop = getDesktopPathFromHome(home);
+
 
     switch(type)
     {
@@ -445,7 +468,50 @@ bool MulticastClient::copyFile(const QString& src, const QString& dstDir, bool o
 
     return QFile::copy(src, dst);
 }
+bool MulticastClient::copyDirectory(const QString &sourceDir,
+                                    const QString &targetDir,
+                                    bool overwrite)
+{
+    QDir src(sourceDir);
 
+    if(!src.exists())
+        return false;
+
+    QDir target(targetDir);
+
+    if(!target.exists())
+    {
+        if(!QDir().mkpath(targetDir))
+            return false;
+    }
+
+    QFileInfoList entries = src.entryInfoList(
+                QDir::NoDotAndDotDot |
+                QDir::Files |
+                QDir::Dirs);
+
+    for(const QFileInfo &entry : entries)
+    {
+        QString srcPath = entry.absoluteFilePath();
+        QString dstPath = targetDir + "/" + entry.fileName();
+
+        if(entry.isDir())
+        {
+            if(!copyDirectory(srcPath, dstPath, overwrite))
+                return false;
+        }
+        else
+        {
+            if(overwrite && QFile::exists(dstPath))
+                QFile::remove(dstPath);
+
+            if(!QFile::copy(srcPath, dstPath))
+                return false;
+        }
+    }
+
+    return true;
+}
 
 QString MulticastClient::getActiveUser()
 {
@@ -457,4 +523,162 @@ QString MulticastClient::getActiveUser()
 
     QString output = process.readAllStandardOutput().trimmed();
     return output;
+}
+
+
+void MulticastClient::processPendingDatagrams()
+{
+    while(socket.hasPendingDatagrams())
+    {
+        QByteArray datagram;
+        datagram.resize(socket.pendingDatagramSize());
+
+        QHostAddress sender;
+
+        socket.readDatagram(datagram.data(),
+                            datagram.size(),
+                            &sender);
+
+        serverAddress = sender;
+
+        processDatagram(datagram, sender);
+    }
+}
+
+void MulticastClient::setPermissionsRecursive(const QString &path, uid_t uid, gid_t gid)
+{
+    QFileInfo info(path);
+
+    // Ana dosya/dizin
+    ::chown(path.toUtf8().constData(), uid, gid);
+
+    if(info.isDir())
+        ::chmod(path.toUtf8().constData(), 0755);
+    else
+        ::chmod(path.toUtf8().constData(), 0755);
+
+    // Alt içerikler
+    QDirIterator it(path,
+                    QDir::NoDotAndDotDot |
+                    QDir::AllEntries,
+                    QDirIterator::Subdirectories);
+
+    while(it.hasNext())
+    {
+        QString p = it.next();
+        QFileInfo fi(p);
+
+        ::chown(p.toUtf8().constData(), uid, gid);
+
+        if(fi.isDir())
+            ::chmod(p.toUtf8().constData(), 0755);
+        else
+            ::chmod(p.toUtf8().constData(), 0755);
+    }
+}
+
+void MulticastClient::copyPath(const QString& basePath,const QString& sourceType,TransferType type,const QString& src, const QString& dstDir,bool owrite)
+{
+    UserPrivilegeHelper helper;
+    SessionInfo userInfo = helper.getActiveSessionInfo();
+    //QString home = info.home;
+    //QString desktop = getDesktopPathFromHome(home);
+
+    QString sourcePath = src + "/" + basePath;
+    QString finalDstPath=resolveTargetPath(type,dstDir);
+    qDebug()<<"finalDstPath:"<<finalDstPath;
+
+    QString finalTargetPath = finalDstPath + "/" + basePath;
+
+    if(sourceType == "directory")
+    {
+        copyDirectory(sourcePath, finalTargetPath, owrite);
+    }
+    else
+    {
+        QFileInfo fi(finalTargetPath);
+
+        QDir().mkpath(fi.path());
+
+        copyFile(sourcePath, fi.path(), owrite);
+    }
+    setPermissionsRecursive(finalTargetPath, userInfo.uid, userInfo.gid);
+
+    /**************************************************************/
+    switch(type)
+    {
+        case TransferType::FileCopyDesktop:
+        case TransferType::FileCopyHome:
+        case TransferType::FileCopyCustom:
+        {
+            /*QFileInfo fi(finalTargetPath);
+            QDir().mkpath(fi.path());
+            client.copyFile(fullSourcePath, fi.path(), overWrite);
+            ::chown(fi.filePath().toUtf8().constData(), info.uid, info.gid);
+            ::chmod(fi.filePath().toUtf8().constData(), 0644);
+            */
+        break;
+        }
+
+       case TransferType::DebInstall:
+        {
+            debInstallStart();
+
+
+            QProcess esc;
+
+            esc.start("systemd-escape",
+                      QStringList() << finalTargetPath);
+
+            esc.waitForFinished();
+
+            QString escapedPath =
+                QString::fromUtf8(
+                    esc.readAllStandardOutput()).trimmed();
+
+            QString serviceName =
+                QString("multicastdebinstaller@%1.service")
+                .arg(escapedPath);
+
+            QProcess p;
+
+            p.start("systemctl",
+                    QStringList() << "start"
+                                  << serviceName);
+
+            p.waitForFinished();
+            debInstallDone(p.exitCode() == 0 ? "0" : "1");
+
+            break;
+        }
+
+        case TransferType::ScriptExecute:
+        {
+
+
+            scriptInstallStart();
+            QProcess esc;
+
+            esc.start("systemd-escape",
+                      QStringList() << finalTargetPath);
+
+            esc.waitForFinished();
+
+            QString escapedPath =
+                QString::fromUtf8(
+                    esc.readAllStandardOutput()).trimmed();
+
+            QString serviceName =
+                QString("multicastscriptexec@%1.service")
+                    .arg(escapedPath);
+            QProcess p;
+            p.start("systemctl",
+                    QStringList() << "start"
+                                  << serviceName);
+
+            p.waitForFinished();
+            scriptInstallDone(p.exitCode() == 0 ? "0" : "1");
+            break;
+        }
+    }
 }

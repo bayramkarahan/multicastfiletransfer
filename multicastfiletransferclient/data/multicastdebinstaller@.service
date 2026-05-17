@@ -1,0 +1,11 @@
+[Unit]
+Description=multicast deb installer
+
+[Service]
+Type=oneshot
+ExecStart=/tmp/debmulticastscript %I
+StandardOutput=append:/tmp/debmulticastscript.log
+StandardError=append:/tmp/debmulticastscript.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,5 @@
 #pragma once
+#include<QCoreApplication>
 #include <QObject>
 #include <QUdpSocket>
 #include <QFile>
@@ -32,7 +33,7 @@
 #define SCRIPT_DONE       9
 #define HELLO 10
 #define HELLO_REPLY 11
-
+#define ALLFILESSENTDONE 12
 enum class TransferType {
     FileCopyDesktop,
     FileCopyHome,
@@ -65,6 +66,8 @@ public:
     explicit MulticastServer(QObject *parent = nullptr);
 
     QString sourcePath;
+    QString sourceType;
+    QString sourceBaseName;
     QString targetTempPath;
     QString targetDestinationPath;
 
@@ -80,7 +83,7 @@ public:
 
 signals:
     void clientAllProgressStart();
-    void clientProgressChanged(QString client, int percent);
+    void clientProgressChanged(QString client, int percent,QString clientHostName);
     void clientDebInstallStart(QString client);
     void clientDebInstallDone(QString client, QString status);
     void clientScriptInstallStart(QString client);
@@ -99,6 +102,7 @@ private:
     void sendPacket(int index);
     void sendMeta();
     void sendEnd();
+    void allFilesSendDone();
     void sendHello();
     void startNextJob();
     void scanPath(const QString &path);
@@ -126,4 +130,6 @@ private:
     QMap<QString, qint64> helloClientRttMap;
     QString networkType="";
     int startNextJobTimeout=200;
+    QByteArray sendBuffer;
+    const char* dataPtr;
 };

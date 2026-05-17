@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Name=multicasttransfer Application
+Name[tr]=multicasttransfer uygulaması
+Type=Application
+Comment[tr]=multicasttransfer uygulaması
+Terminal=false
+Exec=/bin/bash -c "sleep 3&&cp -prf /usr/share/nautilus/scripts/* ~/.local/share/nautilus/scripts"
+Categories=Qt;Utility;
+Keywords=ag;eag;e-ag-client-tray;
+

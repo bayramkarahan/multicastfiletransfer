@@ -28,7 +28,7 @@ public:
                        const QString &fileType);
 
     void sendPrivateMessage(QHostAddress ip, QString msg);
-
+    void log(const QString &msg);
 signals:
     void clientFinished(QHostAddress ip, quint32 fileId);
 

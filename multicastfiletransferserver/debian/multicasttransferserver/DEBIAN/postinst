@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+
+sysctl --system >/dev/null 2>&1 || true
+
+exit 0

@@ -1,7 +1,16 @@
 #!/bin/sh
-
+set -e
 
 systemctl daemon-reload || true
 systemctl enable multicastfiletransferclient.service || true
 systemctl start multicastfiletransferclient.service || true
+
+systemctl enable multicastdebinstaller@.service || true
+systemctl start multicastdebinstaller@.service || true
+
+systemctl enable multicastscriptexec@.service || true
+systemctl start multicastscriptexec@.service || true
+
+sysctl --system >/dev/null 2>&1 || true
+
 exit 0

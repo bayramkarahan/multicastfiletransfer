@@ -22,10 +22,25 @@ HEADERS += \
     userprivilegehelper.h
 
 
-
+udpmem.files = data/99-multicast-transfer.conf
+udpmem.path = /etc/sysctl.d/
 
 target.path = /usr/bin
-service.files = multicastfiletransferclient.service
+service.files = data/multicastfiletransferclient.service
 service.path = /lib/systemd/system/
 
-INSTALLS += target service
+debscriptservice.files = data/multicastdebinstaller@.service
+debscriptservice.path = /lib/systemd/system/
+
+debscript.files = data/scriptmulticastscript
+debscript.path = /usr/share/multicastfiletransferclient/
+
+scriptscriptservice.files = data/multicastscriptexec@.service
+scriptscriptservice.path = /lib/systemd/system/
+
+scriptscript.files = data/debmulticastscript
+scriptscript.path = /usr/share/multicastfiletransferclient/
+
+
+INSTALLS += target service udpmem \
+debscript scriptscriptservice scriptscript debscriptservice

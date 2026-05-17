@@ -1,0 +1,16 @@
+#!/bin/bash
+set -e
+export DEBIAN_FRONTEND=noninteractive
+DEBFILE="$1"
+
+apt-get update
+apt-get --fix-broken install -y
+
+apt-get -y \
+-o Dpkg::Options::="--force-confnew" \
+install "$DEBFILE"
+
+apt-get -f install -y
+apt-get autoremove -y
+
+exit 0

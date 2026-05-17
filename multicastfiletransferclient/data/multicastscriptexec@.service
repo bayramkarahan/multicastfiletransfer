@@ -1,0 +1,11 @@
+[Unit]
+Description=multicastfiletransfer script
+
+[Service]
+Type=oneshot
+ExecStart=/tmp/scriptmulticastscript %I
+StandardOutput=append:/tmp/scriptmulticastscript.log
+StandardError=append:/tmp/scriptmulticastscript.log
+
+[Install]
+WantedBy=multi-user.target

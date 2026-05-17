@@ -6,6 +6,7 @@
 #include <QInputDialog>
 #include <QLineEdit>
 #include <QDir>
+#include <QFileInfo>
 
 #include "multicastfileserver.h"
 #include "progressdialog.h"
@@ -79,7 +80,8 @@ int main(int argc, char *argv[])
     // -----------------------------
     MulticastServer server;
     server.targetTempPath = "/tmp";
-    server.targetDestinationPath = "/tmp";
+    server.targetDestinationPath = "/var";
+
     if(args.target=="deb")
         server.transferType = TransferType::DebInstall;
     if(args.target=="script")
@@ -92,6 +94,9 @@ int main(int argc, char *argv[])
     if(args.target=="tmp")
         server.transferType = TransferType::FileCopyTmp;
     if(args.target=="custom")
+        server.transferType = TransferType::FileCopyCustom;
+
+    if(args.target=="ask")
     {
         server.transferType = TransferType::FileCopyCustom;
         bool ok = false;
@@ -144,12 +149,29 @@ int main(int argc, char *argv[])
     }
     else // project
     {
-        server.sourcePath = "./ab4.deb";
+        server.sourcePath = "./ab.deb";
         server.allowedClients
                 << "0.0.0.0";
     }
 
+
+            QFileInfo info(server.sourcePath);
+
+            if(info.exists())
+            {
+                server.sourceBaseName = info.fileName();
+                if(info.isFile())
+                {
+                    server.sourceType="file";
+                }
+                else if(info.isDir())
+                {
+                    server.sourceType="directory";
+                }
+            }
     qDebug() << "SourcePath:" << server.sourcePath;
+    qDebug() << "sourceBaseName:" << server.sourceBaseName;
+    qDebug() << "sourceType:" << server.sourceType;
     qDebug() << "TargetPath:" << server.targetTempPath;
     qDebug() << "AllowedClients:" << server.allowedClients;
     qDebug() << "TransferType:" << static_cast<int>(server.transferType);
@@ -190,9 +212,9 @@ int main(int argc, char *argv[])
     });
 
     QObject::connect(&server,&MulticastServer::clientProgressChanged,
-                     [&,&server](QString ip, int percent)
+                     [&,&server](QString ip, int percent,QString clientHostName)
     {
-        dlg->updateProgress(ip, percent);
+        dlg->updateProgress(ip, percent,clientHostName);
 
         int processed = server.totalJobCount - server.jobQueue.size();
         double totalpercent =(double(processed) / server.totalJobCount) * 100.0;

@@ -26,6 +26,9 @@ target.path = /usr/bin
 service.files = multicastfiletransferclient.service
 service.path = /lib/systemd/system/
 
+udpmem.files = data/98-multicast-transfer.conf
+udpmem.path = /etc/sysctl.d/
+
 nemomenu.files = data/nemomenu/*
 nemomenu.path = /usr/share/nemo/actions/
 
@@ -38,4 +41,8 @@ dolphinmenu.path = /usr/share/kservices5/ServiceMenus/
 thunarmenu.files = data/thunarmenu/*
 thunarmenu.path = /usr/share/Thunar/
 
-INSTALLS += target service nemomenu nautilusmenu dolphinmenu thunarmenu
+auto_start.files = data/multicasttransfer.desktop
+auto_start.path = /etc/xdg/autostart/
+
+INSTALLS += target service nemomenu nautilusmenu \
+dolphinmenu thunarmenu udpmem auto_start

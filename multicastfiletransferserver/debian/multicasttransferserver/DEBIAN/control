@@ -1,0 +1,10 @@
+Package: multicasttransferserver
+Version: 1.0.7
+Architecture: amd64
+Maintainer: Bayram KARAHAN <bayramk@gmail.com>
+Installed-Size: 166
+Depends: libc6 (>= 2.34), libgcc-s1 (>= 3.0), libqt5core5a (>= 5.15.1), libqt5network5 (>= 5.0.2), libqt5widgets5 (>= 5.0.2), libstdc++6 (>= 5)
+Section: utils
+Priority: optional
+Homepage: http://bayramkarahan.com.tr
+Description: Dosya Dağıtım Uygulaması

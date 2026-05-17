@@ -1,0 +1,2 @@
+/etc/sysctl.d/98-multicast-transfer.conf
+/etc/xdg/autostart/multicasttransfer.desktop

@@ -14,6 +14,7 @@
 #include<QProcess>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <QDirIterator>
 #include<userprivilegehelper.h>
 
 #define MULTICAST_IP "239.255.7.1"
@@ -32,6 +33,7 @@
 #define SCRIPT_DONE       9
 #define HELLO 10
 #define HELLO_REPLY 11
+#define ALLFILESSENTDONE 12
 
 enum class TransferType {
     FileCopyDesktop,
@@ -54,10 +56,17 @@ class MulticastClient : public QObject
 {
     Q_OBJECT
 public:
+    QString clientHostName;
     explicit MulticastClient(QObject *parent=nullptr);
     void start();
     QString resolveTargetPath(TransferType type, const QString& customPath = "");
+    void copyPath(const QString& basePath, const QString& sourceType, TransferType type, const QString& src, const QString& dstDir, bool owrite);
+
     bool copyFile(const QString& src, const QString& dstDir, bool overwrite);
+    bool copyDirectory(const QString &sourceDir,const QString &targetDir,
+                       bool overwrite);
+    void setPermissionsRecursive(const QString &path, uid_t uid, gid_t gid);
+
     QString getDesktopPathFromHome(const QString &home);
     void debInstallStart();
     void debInstallDone(QString status);
@@ -81,7 +90,7 @@ private slots:
     void saveFile();
     void resetState();
     void sendDone();
-
+    void processPendingDatagrams();
 
     QString generateFileName(const QString& dir, const QString& baseName);
     void sendProgress(int percent);
@@ -100,7 +109,9 @@ private:
     quint64 currentTransferId;
     QString fileName;
     QString tmpTargetPath;
-     QString destTargetPath;
+    QString destTargetPath;
+    QString sourceBaseName;
+    QString sourceType;
 
     bool overwrite;
     TransferType transferType;
@@ -110,4 +121,5 @@ private:
     bool allowed;
     int receivedCount;
     int lastPercent;
+    bool sendAllFilesState=false;
 };

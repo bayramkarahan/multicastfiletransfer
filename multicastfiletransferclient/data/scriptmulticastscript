@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e
+
+export DEBIAN_FRONTEND=noninteractive
+
+SCRIPTFILE="$1"
+
+apt-get update
+apt-get --fix-broken install -y
+apt-get autoremove -y
+
+#chmod +x "$SCRIPTFILE"
+
+bash "$SCRIPTFILE"
+
+exit 0

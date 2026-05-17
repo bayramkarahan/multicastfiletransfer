@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Service
+X-KDE-ServiceTypes=KonqPopupMenu/Plugin
+MimeType=application/x-shellscript;
+Actions=runScript;
+
+[Desktop Action runScript]
+Name=Multicast ile Deb Kur
+Exec=/usr/bin/multicastfiletransferserver --mode rightclick --target deb %F
+Icon=network-transmit

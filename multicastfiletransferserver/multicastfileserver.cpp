@@ -55,7 +55,7 @@ void MulticastServer::start()
 {
     log("SERVER START");
 
-    socket.setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 8*1024*1024);
+    socket.setSocketOption(QAbstractSocket::SendBufferSizeSocketOption, 16*1024*1024);
     socket.setSocketOption(QAbstractSocket::MulticastTtlOption, 4);
     scanPath(sourcePath);
 
@@ -130,7 +130,7 @@ void MulticastServer::startNextJob()
     if(jobQueue.isEmpty())
     {
         log("ALL FILES SENT");
-
+        allFilesSendDone();
         return;
     }
 
@@ -145,17 +145,17 @@ void MulticastServer::startNextJob()
         allClients = QSet<QString>(allowedClients.begin(), allowedClients.end());
 
     sendMeta();
-    QThread::msleep(100);
-
+    ///QThread::msleep(100);
     sendTimer.stop();
     sendTimer.disconnect();
-    ///burst=5;
-    //interval = burst/2;
-    ///interval=2;
-    //log(QString("Adaptive Burst: %1 Interval: %2").arg(burst).arg(interval));
-
+    //burst=10;
+    //interval=3;
+    //dataPtr = currentJob.data.constData();
+    //sendBuffer.resize(sizeof(PacketHeader) + PACKET_SIZE);
+/*
     connect(&sendTimer, &QTimer::timeout, this, [this]()
             {
+
 
                 for(int i = 0; i < burst && currentIndex < currentJob.totalPackets; i++)
                     sendPacket(currentIndex++);
@@ -165,13 +165,31 @@ void MulticastServer::startNextJob()
                     sendTimer.stop();
                     sendEnd();
                     log("END sent → waiting DONE...");
-                    doneTimer->start(startNextJobTimeout);
+
                 }
             });
-
-    QTimer::singleShot(100, this, [this]()
+*/
+    QTimer::singleShot(200, this, [this]()
                        {
+        /*sendTimer.setTimerType(Qt::PreciseTimer);
                            sendTimer.start(interval);
+                           */
+        while(currentIndex < currentJob.totalPackets)
+        {
+            for(int i = 0;
+                i < burst && currentIndex < currentJob.totalPackets;
+                i++)
+            {
+                sendPacket(currentIndex++);
+            }
+
+            //QThread::usleep(interval);
+            QThread::msleep(interval);
+            QCoreApplication::processEvents();
+        }
+
+        sendEnd();
+
                        });
     //sendTimer.start(2);
 }
@@ -190,6 +208,9 @@ void MulticastServer::sendMeta()
     s << transferOverwrite;
     s << (quint32)currentJob.totalPackets;
     s << allowedClients;
+    s << sourceBaseName;
+    s << sourceType;
+
 
     socket.writeDatagram(msg, QHostAddress(MULTICAST_IP), PORT);
     if(!allowedClients.isEmpty())
@@ -215,6 +236,36 @@ void MulticastServer::sendPacket(int index)
     p.append(chunk);
 
     socket.writeDatagram(p,QHostAddress(MULTICAST_IP),PORT);
+    //const char* base = currentJob.data.constData();
+
+        /*int offset = index * PACKET_SIZE;
+
+        int size = qMin(
+            PACKET_SIZE,
+            currentJob.data.size() - offset);
+
+        PacketHeader h{
+            DATA,
+            transferId,
+            (quint32)index,
+            (quint32)currentJob.totalPackets,
+            (quint32)size
+        };
+
+        //QByteArray p;
+        //p.resize(sizeof(PacketHeader) + size);
+
+        memcpy(sendBuffer.data(), &h, sizeof(h));
+
+        memcpy(sendBuffer.data() + sizeof(h),
+               dataPtr + offset,
+               size);
+
+        socket.writeDatagram(
+            sendBuffer.constData(),
+            sizeof(PacketHeader) + size,
+            QHostAddress(MULTICAST_IP),
+            PORT);*/
 }
 
 void MulticastServer::sendEnd()
@@ -228,6 +279,17 @@ void MulticastServer::sendEnd()
     socket.writeDatagram(p,QHostAddress(MULTICAST_IP),PORT);
 
 
+}
+void MulticastServer::allFilesSendDone()
+{
+    log("ALLFILESSENTDONE Gönderildi");
+    QByteArray datagram;
+
+    QDataStream s(&datagram, QIODevice::WriteOnly);
+    s << (quint32)ALLFILESSENTDONE;
+    socket.writeDatagram(
+        datagram,
+        QHostAddress(MULTICAST_IP),PORT);
 }
 
 void MulticastServer::processPendingDatagrams()
@@ -289,6 +351,8 @@ void MulticastServer::processPendingDatagrams()
                         currentJob.relativePath,
                         QString::number(transferId)
                     );
+                    qDebug()<<"DOSYA TAMAMLANDI. YENİ DOSYAYA GEÇİLİYOR..";
+                    doneTimer->start(startNextJobTimeout);
                 }
 
             }
@@ -298,15 +362,16 @@ void MulticastServer::processPendingDatagrams()
         {
             quint64 tid;
             int percent;
+            QString  clientHostName;
 
-            s >> tid >> percent;
+            s >> tid >> percent>>clientHostName;
 
             if(tid == transferId)
             {
                 QString ip = sender.toString();
                 clientProgress[ip] = percent;
                 allClients.insert(ip);
-                emit clientProgressChanged(ip, percent);
+                emit clientProgressChanged(ip, percent,clientHostName);
             }
         }
 
@@ -507,10 +572,19 @@ void MulticastServer::calculateRttValues()
     burst = qBound(2, burst, 14);
     interval = qBound(1, interval, 5);
 
+    if(networkType=="wifi")
+    {
+    interval=interval*3;
+    burst=interval*3;
+    }else
+    {
+        interval=interval*3;
+        burst=interval*5;
+    }
     qDebug() << "Network Type:" << networkType;
     qDebug() << "startNextJobTimeout:" << startNextJobTimeout;
     qDebug() << "BURST:" << burst;
-    qDebug() << "INTERVAL:" << interval;
+    qDebug() << "INTERVAL:" << interval<<"ms";
 }
 
 QString MulticastServer::detectNetworkType()

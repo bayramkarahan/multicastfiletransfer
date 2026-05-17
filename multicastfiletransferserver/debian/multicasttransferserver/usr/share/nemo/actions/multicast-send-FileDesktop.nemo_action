@@ -1,0 +1,7 @@
+[Nemo Action]
+Name=Multicast ile Masaüstüne Gönder
+Comment=Seçilen dosyayı multicast ile gönder
+Exec=/usr/bin/multicastfiletransferserver --mode rightclick --target desktop %F
+Icon-Name=network-transmit
+Selection=any
+Extensions=any;

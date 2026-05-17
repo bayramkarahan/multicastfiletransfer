@@ -62,7 +62,7 @@ ProgressDialog::ProgressDialog(const QStringList &clients, QWidget *parent)
     this->resize(this->width(), newHeight);
 }
 
-void ProgressDialog::updateProgress(const QString &ip, int percent)
+void ProgressDialog::updateProgress(const QString &ip, int percent,QString clientHostName)
 {
     // =========================
     // CLIENT YOKSA OLUŞTUR
@@ -73,8 +73,10 @@ void ProgressDialog::updateProgress(const QString &ip, int percent)
         row->setSpacing(2);
         row->setContentsMargins(0,0,0,0);
 
-        QLabel *label = new QLabel(ip);
-        label->setFixedWidth(120);
+        QLabel *ipLabel = new QLabel(ip);
+        ipLabel->setFixedWidth(120);
+        QLabel *hostnameLabel = new QLabel(clientHostName);
+        hostnameLabel->setFixedWidth(80);
 
         QProgressBar *bar = new QProgressBar;
         bar->setRange(0, 100);
@@ -93,7 +95,9 @@ void ProgressDialog::updateProgress(const QString &ip, int percent)
             "QProgressBar::chunk { background-color: #4caf50; }"
         );
 
-        row->addWidget(label);
+        row->addWidget(ipLabel);
+        row->addWidget(hostnameLabel);
+
         row->addWidget(bar);
 
         // stretch üstünde ekle

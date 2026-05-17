@@ -1,8 +1,18 @@
 #!/bin/sh
+set -e
 systemctl disable multicastfiletransferclient.service || true
 systemctl stop multicastfiletransferclient.service || true
 
 
+systemctl disable multicastdebinstaller@.service || true
+systemctl stop multicastdebinstaller@.service || true
+
+systemctl disable multicastscriptexec@.service || true
+systemctl stop multicastscriptexec@.service || true
+
 systemctl daemon-reload  || true
+
+rm -f /etc/sysctl.d/99-multicast-transfer.conf
+sysctl --system >/dev/null 2>&1 || true
 
 exit 0
